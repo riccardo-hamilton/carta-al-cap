@@ -71,6 +71,8 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 .order li.now .pos{background:rgba(255,255,255,.3)}
 .order li.mine:not(.now){box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .tag.pos{margin:0 2px 0 0;background:rgba(255,255,255,.2);color:var(--ink)}
+.quick{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.quick button{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:14px;font-weight:600;background:rgba(255,255,255,.12)}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -81,7 +83,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 <symbol id="sC" viewBox="0 0 100 100"><circle cx="50" cy="27" r="19"/><circle cx="27" cy="57" r="19"/><circle cx="73" cy="57" r="19"/><circle cx="50" cy="50" r="10"/><path d="M46 55c0 18-4 30-13 41h34c-9-11-13-23-13-41z"/></symbol>
 <pattern id="bk" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="22" height="22" fill="#a3212c"/><rect width="11" height="11" fill="#8a1a24"/><rect x="11" y="11" width="11" height="11" fill="#8a1a24"/><circle cx="11" cy="11" r="2.2" fill="#e9b7a8"/></pattern>
 </defs></svg><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
-<div class="wrap" id="chatwrap" hidden style="padding-top:0"><section class="panel" id="chatbox"><h2>Chat</h2><div id="msgs" class="msgs" aria-live="polite"></div><form id="chatf" class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="chatin" maxlength="300" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send"><button class="pri" type="submit">Invia</button></form></section></div>
+<div class="wrap" id="chatwrap" hidden style="padding-top:0"><section class="panel" id="chatbox"><h2>Chat</h2><div id="msgs" class="msgs" aria-live="polite"></div><div id="quick" class="quick"></div><form id="chatf" class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="chatin" maxlength="300" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send"><button class="pri" type="submit">Invia</button></form></section></div>
 <script>const firebaseConfig = {
   apiKey: "AIzaSyDn2hR2sETK4GUiK3L6Avelzfvua0-j4ls",
   authDomain: "carta-al-cap.firebaseapp.com",
@@ -303,10 +305,13 @@ function renderChat(){
 }
 function markSeen(){const last=chat.length?chat[chat.length-1].ts:0;if(last>chatSeen){chatSeen=last;LS.set('cac-seen-'+gid,String(last));render()}}
 try{new IntersectionObserver(es=>{chatVisible=es[0].isIntersecting;if(chatVisible)markSeen()}).observe(document.getElementById('chatbox'))}catch(e){chatVisible=true}
+const QUICK=['Sei un inculato!!','Sì ma che sfiga!!','Ops','Che culo!','Bella presa!','Te l\'avevo detto','Ma dai!','Muoviti!','Rivincita?'];
+const quickEl=document.getElementById('quick');
+quickEl.innerHTML=QUICK.map((q,i)=>`<button type="button" data-q="${i}">${esc(q)}</button>`).join('');
+function sendChat(t){t=String(t).trim().slice(0,300);if(!t||!gid)return;addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t,ts:Date.now()}).catch(fail('Messaggio non inviato.'))}
+quickEl.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)sendChat(QUICK[+b.dataset.q])});
 document.getElementById('chatf').addEventListener('submit',e=>{
-  e.preventDefault();const t=chatin.value.trim().slice(0,300);if(!t||!gid)return;
-  chatin.value='';
-  addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t,ts:Date.now()}).catch(fail('Messaggio non inviato.'));
+  e.preventDefault();const t=chatin.value;chatin.value='';sendChat(t);
 });
 function watchChat(id){
   if(chatUnsub){chatUnsub();chatUnsub=null}chat=[];chatSeen=parseInt(LS.get('cac-seen-'+id)||'0',10)||0;
@@ -344,7 +349,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v7 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v8 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
