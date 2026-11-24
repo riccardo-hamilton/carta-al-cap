@@ -205,7 +205,7 @@ function saveG(n,dealt){
   // n contiene anche le mani (solo in memoria dell'host)
   const id=gid,prevHands=clone(HANDS);
   if(n.hands){HANDS=clone(n.hands);hk=key(n)}
-  G=publicOf(n);if(n.status==='handEnd'&&n.blind)G.blindCards=Object.fromEntries(n.players.map(p=>[p,n.hands[p][0]]));
+  const prevG=G;G=publicOf(n);sounds(prevG,G);if(n.status==='handEnd'&&n.blind)G.blindCards=Object.fromEntries(n.players.map(p=>[p,n.hands[p][0]]));
   render();
   const pub=G,k=key(n);
   gq=gq.then(async()=>{
@@ -255,6 +255,34 @@ function watchHost(){
   hostSubs.push(onSnapshot(collection(fs,'games',gid,'hands'),s=>{
     s.docs.forEach(d=>{const x=d.data();if(G&&x.k===key(G))HANDS[d.id]=x.cards});hostStep()},()=>{}));
 }
+/* ---------- suoni ---------- */
+let AC=null,soundOn=LS.get('cac-sound')!=='0';
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+document.addEventListener('pointerdown',()=>ac(),{once:true});
+function noise(t0,dur,freq,q,vol){const a=ac();if(!a)return;const n=Math.floor(a.sampleRate*dur),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+  const src=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();src.buffer=b;f.type='bandpass';f.frequency.value=freq;f.Q.value=q;g.gain.value=vol;
+  src.connect(f).connect(g).connect(a.destination);src.start(a.currentTime+t0)}
+function tone(t0,freq,dur,vol,type='sine'){const a=ac();if(!a)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+  o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.05)}
+const SFX={
+  shuffle(){for(let i=0;i<14;i++)noise(i*.035+Math.random()*.01,.05,2200+Math.random()*1500,1.2,.5);for(let i=0;i<6;i++)noise(.65+i*.11,.07,2600,1.5,.6)},
+  play(){noise(0,.09,1700,.9,.9);tone(0,140,.08,.25)},
+  take(){for(let i=0;i<4;i++)noise(i*.05,.06,3000-i*300,1.3,.45)},
+  turn(){tone(0,880,.18,.12);tone(.12,1175,.25,.1)},
+  end(){[523,659,784].forEach((f,i)=>tone(i*.12,f,.35,.1,'triangle'))},
+  chat(){tone(0,1320,.09,.07)}
+};
+function sfx(n){if(soundOn&&AC&&AC.state==='running')try{SFX[n]()}catch(e){}}
+function sounds(p,g){
+  if(!g||!p)return;
+  if(key(p)!==key(g)&&g.status==='bid')return sfx('shuffle');
+  if(g.status==='play'&&(g.trick||[]).length>(p.trick||[]).length||g.status==='trick'&&p.status==='play')sfx('play');
+  if(p.status==='trick'&&g.status!=='trick')setTimeout(()=>sfx('take'),0);
+  if(g.status==='handEnd'&&p.status!=='handEnd')setTimeout(()=>sfx('end'),250);
+  if(g.status==='play'&&g.turn===me&&(p.turn!==me||p.status!=='play'))setTimeout(()=>sfx('turn'),300);
+}
 const chatwrap=document.getElementById('chatwrap'),msgsEl=document.getElementById('msgs'),chatin=document.getElementById('chatin');
 function unread(){return chat.filter(m=>m.u!==me&&m.ts>chatSeen).length}
 function renderChat(){
@@ -274,7 +302,7 @@ document.getElementById('chatf').addEventListener('submit',e=>{
 function watchChat(id){
   if(chatUnsub){chatUnsub();chatUnsub=null}chat=[];chatSeen=parseInt(LS.get('cac-seen-'+id)||'0',10)||0;
   if(!id){renderChat();return}
-  chatUnsub=onSnapshot(query(collection(fs,'games',id,'chat'),orderBy('ts','desc'),limit(60)),s=>{chat=s.docs.map(d=>d.data()).reverse();renderChat();render()},e=>{console.error(e);msgsEl.innerHTML='<p class="small mut">Chat non disponibile: vanno aggiornate le regole di Firestore.</p>'});
+  let first=true;chatUnsub=onSnapshot(query(collection(fs,'games',id,'chat'),orderBy('ts','desc'),limit(60)),s=>{const before=chat.length?chat[chat.length-1].ts:0;chat=s.docs.map(d=>d.data()).reverse();if(!first&&chat.length&&chat[chat.length-1].ts>before&&chat[chat.length-1].u!==me)sfx('chat');first=false;renderChat();render()},e=>{console.error(e);msgsEl.innerHTML='<p class="small mut">Chat non disponibile: vanno aggiornate le regole di Firestore.</p>'});
   renderChat();
 }
 function openGame(id){
@@ -284,7 +312,7 @@ function openGame(id){
   watchChat(id);
   if(!id){render();return}
   subs.push(onSnapshot(doc(fs,'games',id),s=>{
-    G=s.exists()?s.data():null;
+    const prevG=G;G=s.exists()?s.data():null;sounds(prevG,G);
     if(G&&key(G)!==hk){HANDS={};hk=key(G)}
     if(G&&(G.blind?'b'+key(G):'')!==blindKey){blindKey=G.blind?'b'+key(G):'';watchBlind()}
     watchHost();render();hostStep();
@@ -307,7 +335,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v5 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v6 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -322,7 +350,7 @@ function rulesH(){return `<details class="panel"><summary>Regole</summary>
 function viewGame(){
   if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
-  const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button><button data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
+  const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button><button data-act="sound" aria-pressed="${soundOn}">${soundOn?'Suono sì':'Suono no'}</button><button data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
   if(G.status==='lobby'){
     const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
     return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
@@ -391,6 +419,7 @@ app.addEventListener('click',e=>{
   if(a==='rename'){myName='';return render()}
   if(a==='del'){const id=b.dataset.id;if(confirmDel!==id){confirmDel=id;render();setTimeout(()=>{if(confirmDel===id){confirmDel=null;render()}},4000);return}
     confirmDel=null;if(gid===id)openGame(null);deleteDoc(doc(fs,'games',id)).catch(fail('Non riesco a eliminare la partita.'));return}
+  if(a==='sound'){soundOn=!soundOn;LS.set('cac-sound',soundOn?'1':'0');ac();render();if(soundOn)setTimeout(()=>sfx('play'),50);return}
   if(a==='chat'){document.getElementById('chatbox').scrollIntoView({behavior:'smooth'});setTimeout(()=>chatin.focus({preventScroll:true}),400);return}
   if(a==='new')return newGame();
   if(a==='open')return openGame(b.dataset.id);
