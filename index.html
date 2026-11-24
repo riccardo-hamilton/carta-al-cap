@@ -452,7 +452,7 @@ function unread(){return chat.filter(m=>m.k!=='s'&&m.u!==me&&m.ts>chatSeen).leng
 function renderChat(){
   chatwrap.hidden=!(gid&&G);chatVisible=!!(gid&&G);
   const atBottom=msgsEl.scrollHeight-msgsEl.scrollTop-msgsEl.clientHeight<40;
-  msgsEl.innerHTML=chat.length?chat.map(m=>m.k==='s'?`<div class="stkline">${m.u===me?'Hai appiccicato':esc(m.n||'Giocatore')+' ha appiccicato'} «${esc(m.t)}» a ${esc(m.to===me?'te':((G&&G.names&&G.names[m.to])||'qualcuno'))}</div>`:`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut" style="margin:0">Nessun messaggio. Scrivi tu il primo!</p>';
+  msgsEl.innerHTML=chat.length?chat.map(m=>m.k==='s'?`<div class="stkline">${m.to===m.u?(m.u===me?'Ti sei appiccicato':esc(m.n||'Giocatore')+' si è appiccicato')+' «'+esc(m.t)+'»':(m.u===me?'Hai appiccicato':esc(m.n||'Giocatore')+' ha appiccicato')+' «'+esc(m.t)+'» a '+esc(m.to===me?'te':((G&&G.names&&G.names[m.to])||'qualcuno'))}</div>`:`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut" style="margin:0">Nessun messaggio. Scrivi tu il primo!</p>';
   if(atBottom||chat.length&&chat[chat.length-1].u===me)msgsEl.scrollTop=msgsEl.scrollHeight;
   if(chatVisible)markSeen();
 }
@@ -467,29 +467,31 @@ quickEl.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)s
 document.getElementById('chatf').addEventListener('submit',e=>{
   e.preventDefault();const t=chatin.value;chatin.value='';sendChat(t);
 });
-const STK=[['Sei inculato!','#e6392f'],['Che sfiga!','#7b3fd1'],['Pollo!','#f2b134'],['Pirla!','#1f8fe0'],['Ciapa!','#e6392f'],['Dormi?','#2a9d6f'],['Bluff!','#111'],['Sei cotto!','#f07b22'],['Grande!','#2a9d6f'],['Classic Corby','#0f4c81'],['Ziopera!','#b5179e'],['Ziocane!','#6a040f'],['Ziodonperignon!','#1b1b1b']];
+const STK=[['Sei inculato!','#e6392f'],['Che sfiga!','#7b3fd1'],['Pollo!','#f2b134'],['Pirla!','#1f8fe0'],['Ciapa!','#e6392f'],['Dormi?','#2a9d6f'],['Bluff!','#111'],['Sei cotto!','#f07b22'],['Grande!','#2a9d6f'],['Classic Corby','#0f4c81'],['Ziopera!','#b5179e'],['Ziocane!','#6a040f'],['Ziodonperignon!','#1b1b1b'],['Fai schifo!','#5a7d1a'],['Ti odio!','#c1121f']];
+const STK_ME=[["Let's goooo!",'#e85d04'],['Vamoosss!','#2b9348'],['Che palleee','#6c757d'],['Vi odio!','#9d0208']];
 let stkSeen=new Set(),stkTarget=null,stkLast=0;
 const stkLayer=document.createElement('div');stkLayer.className='stklayer';document.body.appendChild(stkLayer);
 function showSticker(m){
   const box=document.querySelector(`.chip[data-id="${CSS.escape(m.to)}"]`);if(!box)return;
-  const r=box.getBoundingClientRect(),st=STK.find(x=>x[0]===m.t)||[m.t,'#e6392f'];
+  const r=box.getBoundingClientRect(),st=STK.concat(STK_ME).find(x=>x[0]===m.t)||[m.t,'#e6392f'];
   const el=document.createElement('div');el.className='sticker';el.textContent=m.t;el.style.background=st[1];
   el.style.left=(r.left+r.width/2+window.scrollX)+'px';el.style.top=(r.top+r.height/2+window.scrollY)+'px';
   el.style.setProperty('--rot',(Math.random()*24-12).toFixed(1)+'deg');
   const by=document.createElement('small');by.textContent='da '+(m.u===me?'te':(m.n||'qualcuno'));el.appendChild(by);
-  stkLayer.appendChild(el);box.classList.remove('hit');void box.offsetWidth;box.classList.add('hit');
-  sfx('slap');if(m.to===me)try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}
+  stkLayer.appendChild(el);{const w=el.offsetWidth,cx=r.left+r.width/2,lim=Math.min(Math.max(cx,w/2+10),innerWidth-w/2-10);el.style.left=(lim+window.scrollX)+'px'}box.classList.remove('hit');void box.offsetWidth;box.classList.add('hit');
+  sfx(m.to===m.u?'turn':'slap');if(m.to===me&&m.u!==me)try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}
   setTimeout(()=>el.remove(),2600);
 }
 function toast(m){const el=document.createElement('div');el.className='toast';const b=document.createElement('b');b.textContent=(m.n||'Giocatore')+': ';el.appendChild(b);el.appendChild(document.createTextNode(m.t));el.addEventListener('click',()=>{el.remove();chatOpen=true;chatVisible=true;render();renderChat();markSeen()});document.body.appendChild(el);setTimeout(()=>el.remove(),3500)}
 function sendSticker(i){
   if(!gid||!stkTarget||Date.now()-stkLast<1500)return;stkLast=Date.now();
   const to=stkTarget;stkTarget=null;render();
-  addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t:STK[i][0],k:'s',to,ts:Date.now()}).catch(fail('Sticker non inviato.'));
+  addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t:(to===me?STK_ME:STK)[i][0],k:'s',to,ts:Date.now()}).catch(fail('Sticker non inviato.'));
 }
 function stkPicker(){
   if(!stkTarget)return'';
-  return `<div class="panel stkpick"><div class="row sp"><b>Appiccica a ${esc(nm(stkTarget))}:</b><button data-act="stkno" style="min-height:36px">Annulla</button></div><div class="stkopts">${STK.map((x,i)=>`<button data-act="stk" data-i="${i}" style="background:${x[1]}">${esc(x[0])}</button>`).join('')}</div></div>`;
+  const self=stkTarget===me,L=self?STK_ME:STK;
+  return `<div class="panel stkpick"><div class="row sp"><b>${self?'Appiccicalo a te stesso:':'Appiccica a '+esc(nm(stkTarget))+':'}</b><button data-act="stkno" style="min-height:36px">Annulla</button></div><div class="stkopts">${L.map((x,i)=>`<button data-act="stk" data-i="${i}" style="background:${x[1]}">${esc(x[0])}</button>`).join('')}</div></div>`;
 }
 function watchChat(id){
   if(chatUnsub){chatUnsub();chatUnsub=null}chat=[];chatSeen=parseInt(LS.get('cac-seen-'+id)||'0',10)||0;
@@ -531,7 +533,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v20 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v21 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -574,14 +576,14 @@ function viewGame(){
   const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer],iLeft=(G.left||[]).includes(me);
   const SPK=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>${soundOn?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
   const head=`<header class="gtop"><button class="ib" data-act="back" aria-label="Torna alle partite">←</button>
-    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v20</small></div>
+    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v21</small></div>
     <button class="ib" data-act="sound" aria-label="${soundOn?'Spegni audio':'Accendi audio'}" aria-pressed="${soundOn}">${SPK}</button>
     <button class="ib" data-act="menu" aria-label="Menu">⋯</button></header>`;
   // giocatori in ordine di giro
   const O=['bid','play','trick'].includes(G.status)&&!G.blind?order():P;
   const played=new Set((G.trick||[]).map(x=>x.p));
   const chips=`<div class="gpl ${G.blind?'blind':''}">${O.map((id,i)=>{
-    const isOut=(G.left||[]).includes(id),b=G.bids&&G.bids[id],tap=inGame&&id!==me&&G.status!=='end';
+    const isOut=(G.left||[]).includes(id),b=G.bids&&G.bids[id],tap=inGame&&G.status!=='end'&&!(G.left||[]).includes(me);
     const line=isOut?'uscito':G.status==='end'?'':G.status==='bid'?(b!=null?'pronto ✓':'pensa…'):`${b} dich · ${G.taken[id]||0} prese`;
     const pos=O===P?'':`<span class="pos">${i+1}°</span>`;
     let card='';
@@ -600,7 +602,7 @@ function viewGame(){
     center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut sm">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`
       :`<div class="big">Quante prese farai?</div><p class="mut sm">Apre ${esc(nm(order()[0]))}${inGame&&order().indexOf(me)>=0?` · tu sei ${order().indexOf(me)+1}° di ${P.length}`:''}</p>`;
     if(inGame&&!iLeft)center+=mine==null?`<div class="bids chipbids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}" class="pchip" style="--pc:${['#c3242f','#1f5fbf','#1d8a4e','#222','#7a3fc0','#d07a12'][i%6]}"><span>${i}</span></button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. Aspetto gli altri…</p>`;
-    center+=`<p class="tip">Tocca un avversario per appiccicargli uno sticker</p>`;
+    center+=`<p class="tip">Tocca un avversario per uno sticker, o te stesso per esultare</p>`;
   }else if(G.status==='play'){
     center=G.trick.length?trickH(G.trick):`<div class="big">Presa ${G.trickNo+1} di ${k}</div>`;
     const myPos=order().indexOf(me);
@@ -664,7 +666,7 @@ async function loadStats(){
       for(const h of g.history||[])for(const id in h.rows){const p=get(g,id),r=h.rows[id];p.hands++;if(r.b===r.t)p.exact++}
       for(const m of chats[gi]){
         if(!m.u)continue;const a=get({names:Object.assign({},g.names,{[m.u]:(g.names&&g.names[m.u])||m.n})},m.u);
-        if(m.k==='s'){a.sent++;a.fav[m.t]=(a.fav[m.t]||0)+1;if(m.to){const t=get(g,m.to);t.recv++;t.got[m.t]=(t.got[m.t]||0)+1;const tn=t.name;a.vs[tn]=(a.vs[tn]||0)+1}}
+        if(m.k==='s'){a.sent++;a.fav[m.t]=(a.fav[m.t]||0)+1;if(m.to&&m.to!==m.u){const t=get(g,m.to);t.recv++;t.got[m.t]=(t.got[m.t]||0)+1;const tn=t.name;a.vs[tn]=(a.vs[tn]||0)+1}}
         else a.msgs++;
       }
     });
