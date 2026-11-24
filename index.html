@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carta al Cap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: serata tra amici al tavolo, sobria e calda
+   IDEA: il tavolo da gioco in panno visto dall'alto
+   PICTURE: il tavolo stesso — giocatori attorno, presa al centro, la tua mano sotto
+   COLOUR and TYPE: panno verde, carte avorio, rosso per il tuo turno; DM Serif Display per carte e titoli, Inter
+   LAYOUT: colonna unica: barra stato, giocatori, tavolo, dichiarazione, mano */
+:root{color-scheme:light dark;--felt:light-dark(#11633f,#0b3a27);--felt2:light-dark(#0c4c30,#072619);--ink:#f4efe3;--mut:light-dark(#cfe3d6,#a9c4b4);--card:#fbf8f1;--cink:#1b1d1c;--red:#c8323a;--acc:#ff6b5b;--line:rgba(255,255,255,.18)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;min-height:100vh;background:radial-gradient(120% 80% at 50% 30%,var(--felt),var(--felt2));color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:760px;margin:0 auto;padding:16px max(4vw,14px) 48px}
+h1{font:400 clamp(34px,7vw,48px)/1.05 'DM Serif Display',serif;margin:8px 0 4px}
+h2{font:400 24px/1.2 'DM Serif Display',serif;margin:0 0 10px}
+p{margin:6px 0}.mut{color:var(--mut)}.small{font-size:14px}
+button{font:600 16px Inter,sans-serif;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.1);color:var(--ink);cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button.pri{background:var(--card);color:var(--cink);border-color:transparent}
+button:disabled{opacity:.45;cursor:default}
+select{font:16px Inter;min-height:44px;border-radius:10px;padding:0 10px;background:var(--card);color:var(--cink);border:0}
+.panel{background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sp{justify-content:space-between}
+.list{display:grid;gap:8px;margin-top:8px}
+.item{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.07)}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;font-size:14px;color:var(--mut)}
+.bar b{color:var(--ink)}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:12px 0}
+.pl{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.2);border:2px solid transparent}
+.pl.turn{border-color:var(--acc)}
+.pl .n{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .s{font-size:14px;color:var(--mut)}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--card);color:var(--cink);margin-left:4px;vertical-align:2px}
+.table{min-height:190px;border-radius:999px/60%;background:rgba(0,0,0,.16);box-shadow:inset 0 0 0 2px rgba(255,255,255,.08),inset 0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px;text-align:center;gap:10px}
+.trick{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.slot{display:grid;justify-items:center;gap:4px;font-size:13px;color:var(--mut);max-width:80px}
+.slot span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.slot.win .card{box-shadow:0 0 0 3px var(--acc),0 6px 14px rgba(0,0,0,.35)}
+.card{width:62px;height:88px;border-radius:9px;background:var(--card);color:var(--cink);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 6px 14px rgba(0,0,0,.35);position:relative;font-family:'DM Serif Display',serif;padding:0;border:0;flex:none}
+.card .c{position:absolute;top:5px;left:7px;font-size:18px;line-height:1;text-align:center}
+.card .b{position:absolute;inset:0;display:grid;place-items:center;font-size:32px}
+.card.red{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,#8d1f27 0 6px,#a8323a 6px 12px);box-shadow:inset 0 0 0 4px var(--card),0 6px 14px rgba(0,0,0,.35)}
+.hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.hand .card.play{cursor:pointer;transition:transform .15s}
+.hand .card.play:hover,.hand .card.play:focus-visible{transform:translateY(-6px)}
+.bids{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.bids button{min-width:52px;font-size:18px}
+.big{font:400 22px/1.2 'DM Serif Display',serif}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+.pos{color:#9df0b8}.neg{color:#ffb0a8}
+.scroll{overflow-x:auto}
+details summary{cursor:pointer;font-weight:600;min-height:32px}
+.note{font-size:14px;color:var(--mut);margin-top:10px}
+.err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
+@media(max-width:600px){.card{width:54px;height:78px}.card .b{font-size:28px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
+</style></head><body><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
+<script>const firebaseConfig = {
+  apiKey: "AIzaSyDn2hR2sETK4GUiK3L6Avelzfvua0-j4ls",
+  authDomain: "carta-al-cap.firebaseapp.com",
+  projectId: "carta-al-cap",
+  storageBucket: "carta-al-cap.firebasestorage.app",
+  messagingSenderId: "315340254898",
+  appId: "1:315340254898:web:12a6e424ad85ab436723ab"
+};</script>
+<script type="module">
+
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,signInAnonymously,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFirestore,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,limit,writeBatch} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const RN={11:'J',12:'Q',13:'K',14:'A'};
+const SU={H:'♥',D:'♦',C:'♣',S:'♠'};
+const rk=c=>parseInt(c,10);
+const st=c=>c.slice(-1);
+const rname=c=>RN[rk(c)]||String(rk(c));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const rnd=n=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}};
+function newDeck(){const d=[];for(const s of 'HDCS')for(let r=2;r<=14;r++)d.push(r+s);for(let i=d.length-1;i>0;i--){const j=rnd(i+1);[d[i],d[j]]=[d[j],d[i]]}return d}
+function rot(arr,k){const n=arr.length;return arr.map((_,i)=>arr[(i+k)%n])}
+function maxFor(n){return Math.floor(52/n)}
+function deal(g,h){
+  const n=g.players.length;
+  g.h=h;g.trick=[];g.winner=null;g.blindWinner=null;g.lastTrick=[];
+  if(h>=g.seq.length){g.status='end';return g}
+  const k=g.seq[h],d=newDeck();
+  g.dealer=h%n;g.hands={};g.bids={};g.taken={};
+  g.players.forEach((id,i)=>{g.hands[id]=d.slice(i*k,i*k+k);g.taken[id]=0});
+  g.blind=h===0;g.trickNo=0;g.turn=null;g.status='bid';
+  return g;
+}
+function start(g,max){
+  const seq=[];for(let i=1;i<=max;i++)seq.push(i);for(let i=max-1;i>=1;i--)seq.push(i);
+  g.r=(g.r||0)+1;g.seq=seq;g.scores={};g.history=[];g.players.forEach(id=>g.scores[id]=0);
+  return deal(g,0);
+}
+function finish(g){
+  const rows={};
+  for(const id of g.players){const b=g.bids[id],t=g.taken[id]||0,pt=t===b?b:-Math.abs(b-t);rows[id]={b,t,pt};g.scores[id]=(g.scores[id]||0)+pt}
+  g.history.push({c:g.seq[g.h],rows});
+  g.status='handEnd';
+  return g;
+}
+function afterTrick(g){
+  g.lastTrick=g.trick;
+  if(g.players.every(id=>g.hands[id].length===0))return finish(g);
+  g.status='play';g.trickNo++;g.trick=[];g.turn=g.winner;
+  return g;
+}
+function advance(g,mv){
+  const n=g.players.length;
+  if(g.status==='lobby'){
+    for(const id in mv){if(mv[id]&&mv[id].join===true&&!g.players.includes(id)&&g.players.length<10)g.players.push(id)}
+    g.players=g.players.filter(id=>id===g.host||!mv[id]||mv[id].join!==false);
+    return g;
+  }
+  if(g.status==='bid'){
+    const k=g.seq[g.h];
+    for(const id of g.players){const b=mv[id]&&mv[id].bid;if(b&&b.h===g.h&&(b.r||0)===(g.r||0)&&g.bids[id]==null&&Number.isInteger(b.v)&&b.v>=0&&b.v<=k)g.bids[id]=b.v}
+    if(g.players.every(id=>g.bids[id]!=null)){
+      if(g.blind){
+        const order=rot(g.players,g.dealer+1);let w=order[0];
+        for(const id of order)if(rk(g.hands[id][0])>rk(g.hands[w][0]))w=id;
+        g.taken[w]=1;g.blindWinner=w;return finish(g);
+      }
+      g.status='play';g.trickNo=0;g.trick=[];g.turn=g.players[(g.dealer+1)%n];
+    }
+    return g;
+  }
+  if(g.status==='play'){
+    const p=mv[g.turn]&&mv[g.turn].play;
+    if(p&&p.h===g.h&&(p.r||0)===(g.r||0)&&p.t===g.trickNo&&g.hands[g.turn].includes(p.c)&&!g.trick.some(x=>x.p===g.turn)){
+      g.hands[g.turn]=g.hands[g.turn].filter(c=>c!==p.c);g.trick.push({p:g.turn,c:p.c});
+      if(g.trick.length===n){let w=g.trick[0];for(const x of g.trick)if(rk(x.c)>rk(w.c))w=x;g.taken[w.p]++;g.winner=w.p;g.status='trick'}
+      else g.turn=g.players[(g.players.indexOf(g.turn)+1)%n];
+    }
+    return g;
+  }
+  return g;
+}
+const fbApp=initializeApp(firebaseConfig);
+const auth=getAuth(fbApp),fs=getFirestore(fbApp);
+const app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let me=null,myName=LS.get('cac-name')||'',gid=null,G=null,games=[],msg='',loading=true,maxSel=null,trickKey='';
+let moves={},myMove={},myHand=null,HANDS={},blindCards={},subs=[],gamesUnsub=null;
+
+const key=g=>g?(g.r||0)+'-'+g.h:'';
+function nm(id){if(id===me)return 'Tu';return (G&&G.names&&G.names[id])||'Giocatore'}
+function cardH(c,cls='',attr=''){
+  if(!c)return `<span class="card back ${cls}" ${attr} aria-label="Carta coperta"></span>`;
+  const red='HD'.includes(st(c))?' red':'';const r=esc(rname(c)),s=SU[st(c)]||'';
+  const tag=cls.includes('play')?'button':'span';
+  return `<${tag} class="card${red} ${cls}" ${attr} aria-label="${r} ${s}"><span class="c">${r}<br>${s}</span><span class="b">${s}</span></${tag}>`;
+}
+const sortHand=h=>[...h].sort((a,b)=>rk(b)-rk(a)||'SHDC'.indexOf(st(a))-'SHDC'.indexOf(st(b)));
+const sign=n=>n>0?'+'+n:String(n);
+const fail=t=>e=>{console.error(e);msg=t;render()};
+
+/* ---------- scritture ---------- */
+let gq=Promise.resolve();
+function publicOf(g){const p=clone(g);delete p.hands;p.handCount={};for(const id of g.players||[])p.handCount[id]=g.hands&&g.hands[id]?g.hands[id].length:0;return p}
+function saveG(n,dealt){
+  // n contiene anche le mani (solo in memoria dell'host)
+  const id=gid,prevHands=clone(HANDS);
+  if(n.hands){HANDS=clone(n.hands);hk=key(n)}
+  G=publicOf(n);if(n.status==='handEnd'&&n.blind)G.blindCards=Object.fromEntries(n.players.map(p=>[p,n.hands[p][0]]));
+  render();
+  const pub=G,k=key(n);
+  gq=gq.then(async()=>{
+    const b=writeBatch(fs);
+    if(n.hands)for(const p of n.players){
+      if(dealt||JSON.stringify(prevHands[p])!==JSON.stringify(n.hands[p]))b.set(doc(fs,'games',id,'hands',p),{cards:n.hands[p],k});
+      if(dealt&&n.blind)b.set(doc(fs,'games',id,'blind',p),{card:n.hands[p][0],k});
+    }
+    b.set(doc(fs,'games',id),pub);
+    await b.commit();
+  }).catch(fail('Salvataggio non riuscito, controlla la connessione.'));
+}
+let mq=Promise.resolve();
+function writeMove(patch){
+  myMove=Object.assign({},myMove,patch,{name:myName,ts:Date.now()});render();
+  const body=clone(myMove),id=gid;
+  mq=mq.then(()=>setDoc(doc(fs,'games',id,'moves',me),body)).catch(fail('Mossa non inviata, riprova.'));
+}
+function full(){return Object.assign(clone(G),{hands:clone(HANDS)})}
+function hostStep(){
+  if(!G||G.host!==me)return;
+  if(G.status!=='lobby'&&G.status!=='end'&&!(G.players||[]).every(p=>HANDS[p]))return; // mani non ancora caricate
+  const cur=full(),before=JSON.stringify(cur);
+  const n=advance(clone(cur),moves);
+  if(G.status==='lobby'){n.names=n.names||{};for(const p of n.players)if(moves[p]&&moves[p].name)n.names[p]=String(moves[p].name).slice(0,20)}
+  if(JSON.stringify(n)!==before){saveG(n);return}
+  if(G.status==='trick'){
+    const k=G.h+'-'+G.trickNo;
+    if(trickKey!==k){trickKey=k;const id=gid;setTimeout(()=>{if(gid===id&&G&&G.status==='trick'&&G.h+'-'+G.trickNo===k)saveG(afterTrick(full()))},1800)}
+  }
+}
+
+/* ---------- letture ---------- */
+function stopSubs(){subs.forEach(u=>u());subs=[]}
+let blindSubs=[];
+function watchBlind(){
+  blindSubs.forEach(u=>u());blindSubs=[];blindCards={};
+  if(!G||!G.blind||G.status==='lobby')return;
+  for(const p of G.players)if(p!==me)blindSubs.push(onSnapshot(doc(fs,'games',gid,'blind',p),s=>{const d=s.data();blindCards[p]=d&&d.k===key(G)?d.card:null;render()},()=>{}));
+}
+let hostSubs=[],amHost=false,blindKey='',hk='';
+function watchHost(){
+  const h=G&&G.host===me;
+  if(h===amHost)return;amHost=h;hostSubs.forEach(u=>u());hostSubs=[];
+  if(!h)return;
+  hostSubs.push(onSnapshot(collection(fs,'games',gid,'moves'),s=>{moves={};s.docs.forEach(d=>moves[d.id]=d.data());hostStep()},()=>{}));
+  hostSubs.push(onSnapshot(collection(fs,'games',gid,'hands'),s=>{
+    s.docs.forEach(d=>{const x=d.data();if(G&&x.k===key(G))HANDS[d.id]=x.cards});hostStep()},()=>{}));
+}
+function openGame(id){
+  stopSubs();blindSubs.forEach(u=>u());blindSubs=[];hostSubs.forEach(u=>u());hostSubs=[];amHost=false;blindKey='';hk='';
+  gid=id;G=null;moves={};myMove={};myHand=null;HANDS={};blindCards={};msg='';trickKey='';maxSel=null;
+  try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch(e){}
+  if(!id){render();return}
+  subs.push(onSnapshot(doc(fs,'games',id),s=>{
+    G=s.exists()?s.data():null;
+    if(G&&key(G)!==hk){HANDS={};hk=key(G)}
+    if(G&&(G.blind?'b'+key(G):'')!==blindKey){blindKey=G.blind?'b'+key(G):'';watchBlind()}
+    watchHost();render();hostStep();
+  },fail('Partita non raggiungibile.')));
+  subs.push(onSnapshot(doc(fs,'games',id,'moves',me),s=>{const d=s.data();if(d&&!(myMove.ts>(d.ts||0)))myMove=d;if(G&&G.host===me&&d)moves[me]=d;render()},()=>{}));
+  subs.push(onSnapshot(doc(fs,'games',id,'hands',me),s=>{const d=s.data();myHand=d||null;render()},()=>{}));
+  render();
+}
+function newGame(){
+  const id='g'+Date.now().toString(36)+rnd(1e6).toString(36);
+  const g={host:me,players:[me],names:{[me]:myName},status:'lobby',created:Date.now()};
+  setDoc(doc(fs,'games',id),g).then(()=>{openGame(id);writeMove({join:true})}).catch(fail('Non riesco a creare la partita.'));
+}
+function viewLobby(){
+  const open=games.filter(g=>g.status==='lobby');
+  const mine=games.filter(g=>g.status!=='lobby'&&g.status!=='end'&&(g.players||[]).includes(me));
+  const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
+  const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><button data-act="open" data-id="${esc(g.id)}">${label}</button></div>`;
+  return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
+  <p class="small mut">Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
+  <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
+  ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
+  ${rulesH()}`;
+}
+function rulesH(){return `<details class="panel"><summary>Regole</summary>
+<p>Si gioca con un mazzo da 52 carte. Le mani salgono da 1 carta fino al massimo che il mazzo permette (52 ÷ giocatori), poi scendono di nuovo fino a 1.</p>
+<p><b>Prima mano:</b> una carta a testa, che vedi solo sugli altri. Dichiari 1 se pensi di avere la più alta, 0 se no. A parità vince il giocatore più vicino al mazziere in senso orario.</p>
+<p><b>Mani successive:</b> guardi le tue carte e tutti dichiarano insieme quante prese faranno. Apre chi siede dopo il mazziere, poi apre chi ha vinto l'ultima presa. Vince la carta più alta (A, K, Q, J, 10…2); a parità vince quella giocata prima.</p>
+<p><b>Punti:</b> se fai esattamente le prese dichiarate guadagni quel numero (0 = 0 punti). Se sbagli perdi la differenza tra dichiarate e fatte.</p></details>`}
+
+function viewGame(){
+  if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
+  const P=G.players||[],inGame=P.includes(me),host=G.host===me;
+  const top=`<div class="row sp"><button data-act="back">← Partite</button><span class="small mut">Host: ${esc(nm(G.host))}</span></div>`;
+  if(G.status==='lobby'){
+    const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
+    return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
+    ${host?`<div class="row" style="margin-top:14px"><label for="mx">Carte massime</label><select id="mx">${Array.from({length:mx},(_,i)=>i+1).map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('')}</select><span class="small mut">${2*sel-1} mani</span></div>
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="start" ${n<2?'disabled':''}>Inizia la partita</button><button data-act="del">Annulla</button></div>${n<2?'<p class="note">Servono almeno 2 giocatori: gli amici aprono questa pagina e toccano “Entra”.</p>':''}`
+    :inGame?`<p class="note">Aspetta che l'host inizi la partita.</p><button data-act="leave">Esci</button>`
+    :`<div class="row" style="margin-top:12px"><button class="pri" data-act="join" data-x>Siediti al tavolo</button></div>`}</div>`;
+  }
+  const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer];
+  const bar=G.status==='end'?'':`<div class="bar" style="margin-top:12px"><span>Mano <b>${G.h+1}</b> di ${G.seq.length}</span><span><b>${k}</b> ${k===1?'carta':'carte'}</span><span>Dà le carte: <b>${esc(nm(dealer))}</b></span></div>`;
+  const allBid=P.every(id=>G.bids&&G.bids[id]!=null)&&G.status!=='bid';
+  const pls=`<div class="players">${P.map(id=>{
+    const b=G.bids&&G.bids[id];const bidTxt=G.status==='end'?'':G.status==='bid'?(b!=null?'ha dichiarato ✓':'sta pensando…'):`dichiara ${b} · prese ${G.taken[id]||0}`;
+    const bc=G.status==='handEnd'?(G.blindCards||{})[id]:blindCards[id];const blindCard=G.blind&&(id!==me||G.status==='handEnd')?`<div style="margin-top:6px">${cardH(bc,'',G.blindWinner===id?'style="box-shadow:0 0 0 3px var(--acc)"':'')}</div>`:(G.blind&&id===me?`<div style="margin-top:6px">${cardH(null)}</div>`:'');
+    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}"><div class="n">${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}</div>`}).join('')}</div>`;
+  let center='';
+  const showTrick=(G.status==='trick'||G.status==='handEnd')&&!G.blind?(G.status==='trick'?G.trick:G.lastTrick||[]):G.trick||[];
+  const trickH=t=>`<div class="trick">${t.map(x=>`<div class="slot ${(G.status==='trick'||G.status==='handEnd')&&x.p===G.winner?'win':''}">${cardH(x.c)}<span>${esc(nm(x.p))}</span></div>`).join('')}</div>`;
+  if(G.status==='bid'){
+    const mine=myMove.bid&&myMove.bid.h===G.h&&myMove.bid.r===G.r?myMove.bid.v:null;
+    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`:`<div class="big">Dichiarazioni</div><p class="mut">Quante prese farai? Tutti dichiarano insieme, i numeri si vedono quando hanno finito tutti.</p>`;
+    if(inGame)center+=mine==null?`<div class="bids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}" data-x>${i}</button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. In attesa degli altri…</p>`;
+  }else if(G.status==='play'){
+    center=G.trick.length?trickH(G.trick):`<div class="big">Presa ${G.trickNo+1} di ${k}</div>`;
+    center+=`<p class="${G.turn===me?'':'mut'}">${G.turn===me?'<b>Tocca a te</b>: gioca una carta':'Tocca a '+esc(nm(G.turn))}</p>`;
+  }else if(G.status==='trick'){
+    center=trickH(G.trick)+`<p>Prende <b>${esc(nm(G.winner))}</b></p>`;
+  }else if(G.status==='handEnd'){
+    const last=G.history[G.history.length-1];
+    center=(G.blind?`<p>Carta più alta: <b>${esc(nm(G.blindWinner))}</b></p>`:(showTrick.length?trickH(showTrick):''))+`<div class="scroll" style="width:100%"><table><thead><tr><th>Giocatore</th><th>Dichiarate</th><th>Fatte</th><th>Punti</th></tr></thead><tbody>${P.map(id=>{const r=last.rows[id];return `<tr><td>${esc(nm(id))}</td><td>${r.b}</td><td>${r.t}</td><td class="${r.pt>0?'pos':r.pt<0?'neg':''}">${sign(r.pt)}</td></tr>`}).join('')}</tbody></table></div>`
+      +(host?`<button class="pri" data-act="next">${G.h+1>=G.seq.length?'Vedi la classifica':'Prossima mano'}</button>`:`<p class="mut small">L'host avvia la prossima mano.</p>`);
+  }else if(G.status==='end'){
+    const rank=[...P].sort((a,b)=>G.scores[b]-G.scores[a]);
+    center=`<div class="big">Vince ${esc(nm(rank[0]))}</div><div class="scroll" style="width:100%"><table><tbody>${rank.map((id,i)=>`<tr><td>${i+1}. ${esc(nm(id))}</td><td><b>${G.scores[id]}</b></td></tr>`).join('')}</tbody></table></div>${host?`<button class="pri" data-act="again">Rivincita</button>`:''}`;
+  }
+  let handH='';
+  const mh=myHand&&myHand.k===key(G)?myHand.cards:null;
+  if(inGame&&!G.blind&&mh&&['bid','play','trick'].includes(G.status)){
+    const can=G.status==='play'&&G.turn===me&&!(myMove.play&&myMove.play.r===G.r&&myMove.play.h===G.h&&myMove.play.t===G.trickNo);
+    handH=`<div class="panel" style="padding:12px"><div class="small mut">La tua mano</div><div class="hand">${sortHand(mh).map(c=>cardH(c,can?'play':'',can?`data-act="play" data-c="${esc(c)}"`:'')).join('')}</div></div>`;
+  }
+  if(!inGame&&G.status!=='end')handH=`<p class="note">Stai guardando la partita: le carte dei giocatori restano nascoste.</p>`;
+  const hist=G.history&&G.history.length?`<details class="panel"><summary>Punteggio mano per mano</summary><div class="scroll"><table><thead><tr><th>Mano</th>${P.map(id=>`<th>${esc(nm(id))}</th>`).join('')}</tr></thead><tbody>${G.history.map((r,i)=>`<tr><td>${i+1} (${r.c})</td>${P.map(id=>{const x=r.rows[id];return `<td class="${x.pt>0?'pos':x.pt<0?'neg':''}">${x.b}/${x.t} ${sign(x.pt)}</td>`}).join('')}</tr>`).join('')}<tr><td><b>Totale</b></td>${P.map(id=>`<td><b>${G.scores[id]}</b></td>`).join('')}</tr></tbody></table></div><p class="note">Ogni cella: dichiarate/fatte e punti.</p></details>`:'';
+  const take=inGame&&!host&&G.status!=='end'?`<details class="note"><summary>La partita è ferma?</summary><p>La partita avanza solo mentre l'host ha la pagina aperta. Se l'host è uscito, puoi prendere il suo posto.</p><button data-act="takeover">Diventa host</button></details>`:'';
+  return top+bar+pls+`<div class="table">${center}</div>`+handH+hist+take;
+}
+
+function render(){
+  const ae=document.activeElement,fid=ae&&ae.id;
+  let h='';
+  if(!me)h=`<h1>Carta al Cap</h1><p class="mut">${loading?'Collegamento…':'Non riesco a collegarmi. Controlla la connessione e ricarica.'}</p>`;
+  else if(!myName)h=viewName();
+  else h=gid?viewGame():viewLobby();
+  if(msg)h=`<div class="err" role="alert">${esc(msg)}</div>`+h;
+  app.innerHTML=h;
+  if(fid){const el=document.getElementById(fid);if(el)el.focus()}
+}
+
+app.addEventListener('submit',e=>{e.preventDefault();app.querySelector('[data-act=name]').click()});
+app.addEventListener('change',e=>{if(e.target.id==='mx'){maxSel=parseInt(e.target.value,10);render()}});
+app.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+  const a=b.dataset.act;msg='';
+  if(a==='name'){const v=(document.getElementById('nick').value||'').trim().slice(0,20);if(!v){msg='Scrivi un nome.';return render()}myName=v;LS.set('cac-name',v);return render()}
+  if(a==='rename'){myName='';return render()}
+  if(a==='new')return newGame();
+  if(a==='open')return openGame(b.dataset.id);
+  if(a==='back')return openGame(null);
+  if(a==='join')return writeMove({join:true});
+  if(a==='leave'){writeMove({join:false});return openGame(null)}
+  if(a==='bid')return writeMove({join:true,bid:{r:G.r,h:G.h,v:parseInt(b.dataset.v,10)}});
+  if(a==='play')return writeMove({join:true,play:{r:G.r,h:G.h,t:G.trickNo,c:b.dataset.c}});
+  if(!G)return;
+  if(a==='start'&&G.host===me){const mx=maxFor(G.players.length);return saveG(start(full(),Math.min(maxSel||mx,mx)),true)}
+  if(a==='next'&&G.host===me)return saveG(deal(full(),G.h+1),true);
+  if(a==='again'&&G.host===me)return saveG(start(full(),(G.seq.length+1)/2),true);
+  if(a==='takeover'){updateDoc(doc(fs,'games',gid),{host:me}).catch(fail('Non riesco a prendere il controllo.'));return}
+  if(a==='del'&&G.host===me){const id=gid;openGame(null);deleteDoc(doc(fs,'games',id)).catch(()=>{});return}
+});
+
+
+function viewName(){return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
+<form class="panel"><h2>Come ti chiami?</h2><p class="small mut">Il nome che vedranno gli altri al tavolo.</p><div class="row"><input id="nick" maxlength="20" autocomplete="nickname" value="${esc(myName)}" style="font:16px Inter;min-height:44px;border-radius:10px;border:0;padding:0 12px;flex:1 1 180px"><button class="pri" type="button" data-act="name">Entra</button></div></form>${rulesH()}`}
+
+onAuthStateChanged(auth,u=>{
+  if(!u){signInAnonymously(auth).catch(e=>{console.error(e);loading=false;msg='Accesso anonimo non riuscito: è attivo su Firebase?';render()});return}
+  me=u.uid;loading=false;
+  if(!gamesUnsub)gamesUnsub=onSnapshot(query(collection(fs,'games'),orderBy('created','desc'),limit(40)),s=>{games=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(!gid)render()},fail('Non riesco a leggere le partite: controlla le regole di Firestore.'));
+  const h=(location.hash||'').slice(1);
+  if(/^g[a-z0-9]+$/.test(h)&&!gid)openGame(h);else render();
+});
+setTimeout(()=>{if(!me){loading=false;render()}},10000);
+render();
+</script></body></html>
