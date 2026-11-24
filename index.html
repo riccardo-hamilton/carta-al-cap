@@ -89,6 +89,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 .pl.turn{animation:pulse 1.6s ease-in-out infinite}
 tr.rowin{animation:rowin .4s ease-out both}
 @media(prefers-reduced-motion:reduce){.card,.trick,.pl,tr{animation:none!important}}
+.pl.out{opacity:.55}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -127,7 +128,8 @@ function maxFor(n){return Math.floor(52/n)}
 function deal(g,h){
   const n=g.players.length;
   g.h=h;g.trick=[];g.winner=null;g.blindWinner=null;g.lastTrick=[];
-  if(h>=g.seq.length){g.status='end';return g}
+  const L=g.left||[];if(L.length){const gone=g.players.filter(p=>L.includes(p));if(gone.length){g.out=(g.out||[]).concat(gone);g.players=g.players.filter(p=>!L.includes(p))}g.left=[]}
+  if(h>=g.seq.length||g.players.length<2){g.status='end';return g}
   const k=g.seq[h],d=newDeck();
   g.dealer=h%n;g.hands={};g.bids={};g.taken={};
   g.players.forEach((id,i)=>{g.hands[id]=d.slice(i*k,i*k+k);g.taken[id]=0});
@@ -159,8 +161,10 @@ function advance(g,mv){
     g.players=g.players.filter(id=>id===g.host||!mv[id]||mv[id].join!==false);
     return g;
   }
+  if(g.status!=='end'){g.left=g.left||[];for(const id of g.players)if(mv[id]&&mv[id].leave===true&&!g.left.includes(id))g.left.push(id)}
   if(g.status==='bid'){
     const k=g.seq[g.h];
+    for(const id of g.left)if(g.players.includes(id)&&g.bids[id]==null)g.bids[id]=0;
     for(const id of g.players){const b=mv[id]&&mv[id].bid;if(b&&b.h===g.h&&(b.r||0)===(g.r||0)&&g.bids[id]==null&&Number.isInteger(b.v)&&b.v>=0&&b.v<=k)g.bids[id]=b.v}
     if(g.players.every(id=>g.bids[id]!=null)){
       if(g.blind){
@@ -173,7 +177,8 @@ function advance(g,mv){
     return g;
   }
   if(g.status==='play'){
-    const p=mv[g.turn]&&mv[g.turn].play;
+    const hand=g.hands[g.turn]||[];
+    const p=g.left.includes(g.turn)&&hand.length?{r:g.r,h:g.h,t:g.trickNo,c:[...hand].sort((a,b)=>rk(a)-rk(b))[0]}:(mv[g.turn]&&mv[g.turn].play);
     if(p&&p.h===g.h&&(p.r||0)===(g.r||0)&&p.t===g.trickNo&&g.hands[g.turn].includes(p.c)&&!g.trick.some(x=>x.p===g.turn)){
       g.hands[g.turn]=g.hands[g.turn].filter(c=>c!==p.c);g.trick.push({p:g.turn,c:p.c});
       if(g.trick.length===n){let w=g.trick[0];for(const x of g.trick)if(rk(x.c)>rk(w.c))w=x;g.taken[w.p]++;g.winner=w.p;g.status='trick'}
@@ -363,14 +368,15 @@ function newGame(){
   const to=setTimeout(()=>{msg='Firebase non risponde: la partita non è ancora salvata. [timeout]';render()},12000);
   setDoc(doc(fs,'games',id),g).then(()=>{clearTimeout(to);msg='';openGame(id);writeMove({join:true})}).catch(e=>{clearTimeout(to);fail('Non riesco a creare la partita.')(e)});
 }
+function cBtn(act,id,label,sure,extra=''){const k=act+':'+id,c=confirmDel===k;return `<button data-act="${act}" data-id="${esc(id)}" class="${c?'danger':''}" ${extra}>${c?sure:label}</button>`}
 function delBtn(id,small){const c=confirmDel===id;return `<button data-act="del" data-id="${esc(id)}" class="${c?'danger':''}" aria-label="Elimina partita">${c?'Sicuro? Elimina':(small?'Elimina':'Elimina partita')}</button>`}
 function viewLobby(){
   const open=games.filter(g=>g.status==='lobby');
-  const mine=games.filter(g=>g.status!=='lobby'&&g.status!=='end'&&(g.players||[]).includes(me));
+  const mine=games.filter(g=>g.status!=='lobby'&&g.status!=='end'&&(g.players||[]).includes(me)&&!(g.left||[]).includes(me));
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v9 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v10 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -411,10 +417,11 @@ function viewGame(){
   const bar=G.status==='end'?'':`<div class="bar" style="margin-top:12px"><span>Mano <b>${G.h+1}</b> di ${G.seq.length}</span><span><b>${k}</b> ${k===1?'carta':'carte'}</span><span>Dà le carte: <b>${esc(nm(dealer))}</b></span></div>`;
   const allBid=P.every(id=>G.bids&&G.bids[id]!=null)&&G.status!=='bid';
   const pls=`<div class="players">${P.map(id=>{
-    const b=G.bids&&G.bids[id];const bidTxt=G.status==='end'?'':G.status==='bid'?(b!=null?'ha dichiarato ✓':'sta pensando…'):`dichiara ${b} · prese ${G.taken[id]||0}`;
+    const isOut=(G.left||[]).includes(id);const b=G.bids&&G.bids[id];const bidTxt=isOut?'è uscito · gioca il computer':G.status==='end'?'':G.status==='bid'?(b!=null?'ha dichiarato ✓':'sta pensando…'):`dichiara ${b} · prese ${G.taken[id]||0}`;
     const bc=G.status==='handEnd'?(G.blindCards||{})[id]:blindCards[id];const blindCard=G.blind&&(id!==me||G.status==='handEnd')?`<div style="margin-top:6px">${(()=>{const k=key(G);const A=G.status==='handEnd'&&id===me?anC('f'+k,'flip',600):anC('d'+k+id,'deal',450,G.players.indexOf(id)*120);return cardH(bc,A.c+(G.blindWinner===id?' winc':''),'',A.s)})()}</div>`:(G.blind&&id===me?`<div style="margin-top:6px">${(()=>{const A=anC('d'+key(G)+id,'deal',450,G.players.indexOf(id)*120);return cardH(null,A.c,'',A.s)})()}</div>`:'');
     const posI=['bid','play','trick'].includes(G.status)&&!G.blind?order().indexOf(id):-1;
-    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}" style="animation-delay:-${Math.round(performance.now()%1600)}ms"><div class="n">${posI>=0?`<span class="tag pos">${posI+1}°</span> `:''}${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}</div>`}).join('')}</div>`;
+    const kick=host&&id!==me&&!isOut&&!['end','lobby'].includes(G.status)?`<div style="margin-top:6px">${cBtn('kick',id,'Togli','Sicuro? Togli','style="min-height:34px;padding:0 10px;font-size:13px"')}</div>`:'';
+    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}${isOut?' out':''}" style="animation-delay:-${Math.round(performance.now()%1600)}ms"><div class="n">${posI>=0?`<span class="tag pos">${posI+1}°</span> `:''}${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}${kick}</div>`}).join('')}</div>`;
   let center='';
   const showTrick=(G.status==='trick'||G.status==='handEnd')&&!G.blind?(G.status==='trick'?G.trick:G.lastTrick||[]):G.trick||[];
   const trickH=t=>{const tk=key(G)+'-'+G.trickNo;const C=G.status==='trick'?anC('c'+tk,'collect',700,1000):{c:'',s:''};return `<div class="trick ${C.c}" style="${C.s}">${t.map(x=>{const A=anC('t'+tk+x.p+x.c,x.p===me?'fly-up':'fly-down',380);return `<div class="slot ${(G.status==='trick'||G.status==='handEnd')&&x.p===G.winner?'win':''}">${cardH(x.c,A.c,'',A.s)}<span>${esc(nm(x.p))}</span></div>`}).join('')}</div>`};
@@ -433,7 +440,7 @@ function viewGame(){
       +(host?`<button class="pri" data-act="next">${G.h+1>=G.seq.length?'Vedi la classifica':'Prossima mano'}</button>`:`<p class="mut small">L'host avvia la prossima mano.</p>`);
   }else if(G.status==='end'){
     const rank=[...P].sort((a,b)=>G.scores[b]-G.scores[a]);
-    center=`<div class="big">Vince ${esc(nm(rank[0]))}</div><div class="scroll" style="width:100%"><table><tbody>${rank.map((id,i)=>`<tr><td>${i+1}. ${esc(nm(id))}</td><td><b>${G.scores[id]}</b></td></tr>`).join('')}</tbody></table></div>${host?`<button class="pri" data-act="again">Rivincita</button>`:''}`;
+    center=`<div class="big">Vince ${esc(nm(rank[0]))}</div><div class="scroll" style="width:100%"><table><tbody>${rank.map((id,i)=>`<tr><td>${i+1}. ${esc(nm(id))}</td><td><b>${G.scores[id]}</b></td></tr>`).join('')}${(G.out||[]).map(id=>`<tr class="mut"><td>${esc(nm(id))} (uscito)</td><td>${G.scores[id]||0}</td></tr>`).join('')}</tbody></table></div>${host?`<button class="pri" data-act="again">Rivincita</button>`:''}`;
   }
   let handH='';
   const mh=myHand&&myHand.k===key(G)?myHand.cards:null;
@@ -443,8 +450,10 @@ function viewGame(){
   }
   if(!inGame&&G.status!=='end')handH=`<p class="note">Stai guardando la partita: le carte dei giocatori restano nascoste.</p>`;
   const hist=G.history&&G.history.length?`<details class="panel"><summary>Punteggio mano per mano</summary><div class="scroll"><table><thead><tr><th>Mano</th>${P.map(id=>`<th>${esc(nm(id))}</th>`).join('')}</tr></thead><tbody>${G.history.map((r,i)=>`<tr><td>${i+1} (${r.c})</td>${P.map(id=>{const x=r.rows[id];return `<td class="${x.pt>0?'pos':x.pt<0?'neg':''}">${x.b}/${x.t} ${sign(x.pt)}</td>`}).join('')}</tr>`).join('')}<tr><td><b>Totale</b></td>${P.map(id=>`<td><b>${G.scores[id]}</b></td>`).join('')}</tr></tbody></table></div><p class="note">Ogni cella: dichiarate/fatte e punti.</p></details>`:'';
-  const take=inGame&&!host&&G.status!=='end'?`<details class="note"><summary>La partita è ferma?</summary><p>La partita avanza solo mentre l'host ha la pagina aperta. Se l'host è uscito, puoi prendere il suo posto.</p><button data-act="takeover">Diventa host</button></details>`:'';
-  return top+bar+pls+orderH()+`<div class="table">${center}</div>`+handH+hist+take;
+  const iLeft=(G.left||[]).includes(me);
+  const leaveH=inGame&&!iLeft&&!['lobby','end'].includes(G.status)?`<div class="row" style="margin-top:16px">${cBtn('quit',gid,'Esci dalla partita','Sicuro? Esci')}<span class="small mut">La mano in corso la finisce il computer per te, poi gli altri continuano senza di te.</span></div>`:'';
+  const take=inGame&&!host&&!iLeft&&G.status!=='end'?`<details class="note"><summary>La partita è ferma?</summary><p>La partita avanza solo mentre l'host ha la pagina aperta. Se l'host è uscito, puoi prendere il suo posto.</p><button data-act="takeover">Diventa host</button></details>`:'';
+  return top+bar+pls+orderH()+`<div class="table">${center}</div>`+handH+hist+take+leaveH;
 }
 
 function render(){
@@ -466,6 +475,11 @@ app.addEventListener('click',e=>{
   const a=b.dataset.act;msg='';
   if(a==='name'){const v=(document.getElementById('nick').value||'').trim().slice(0,20);if(!v){msg='Scrivi un nome.';return render()}myName=v;LS.set('cac-name',v);return render()}
   if(a==='rename'){myName='';return render()}
+  const sure=k=>{if(confirmDel!==k){confirmDel=k;render();setTimeout(()=>{if(confirmDel===k){confirmDel=null;render()}},4000);return false}confirmDel=null;return true};
+  if(a==='quit'){if(!G||!sure('quit:'+gid))return;
+    if(G.host===me){const n=full();n.left=[...new Set([...(n.left||[]),me])];const others=n.players.filter(p=>!n.left.includes(p));if(others.length)n.host=others[0];else n.status='end';saveG(n)}
+    writeMove({join:true,leave:true});return openGame(null)}
+  if(a==='kick'){const id=b.dataset.id;if(!G||G.host!==me||!sure('kick:'+id))return;const n=full();n.left=[...new Set([...(n.left||[]),id])];return saveG(n)}
   if(a==='del'){const id=b.dataset.id;if(confirmDel!==id){confirmDel=id;render();setTimeout(()=>{if(confirmDel===id){confirmDel=null;render()}},4000);return}
     confirmDel=null;if(gid===id)openGame(null);deleteDoc(doc(fs,'games',id)).catch(fail('Non riesco a eliminare la partita.'));return}
   if(a==='sound'){soundOn=!soundOn;LS.set('cac-sound',soundOn?'1':'0');ac();render();if(soundOn)setTimeout(()=>sfx('play'),50);return}
