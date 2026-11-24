@@ -56,6 +56,12 @@ th:first-child,td:first-child{text-align:left;white-space:normal}
 details summary{cursor:pointer;font-weight:600;min-height:32px}
 .note{font-size:14px;color:var(--mut);margin-top:10px}
 .danger{background:#c3242f;border-color:#c3242f;color:#fff}
+.msgs{display:grid;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
+.msg{max-width:85%;padding:7px 11px;border-radius:14px;background:rgba(255,255,255,.1);overflow-wrap:anywhere;justify-self:start}
+.msg.me{background:var(--card);color:var(--cink);justify-self:end}
+.msg b{display:block;font-size:12px;opacity:.75}
+#chatin{font:16px Inter;min-height:44px;border-radius:10px;border:0;padding:0 12px;flex:1 1 auto;width:100%}
+.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;margin-left:6px;text-align:center}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -66,6 +72,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 <symbol id="sC" viewBox="0 0 100 100"><circle cx="50" cy="27" r="19"/><circle cx="27" cy="57" r="19"/><circle cx="73" cy="57" r="19"/><circle cx="50" cy="50" r="10"/><path d="M46 55c0 18-4 30-13 41h34c-9-11-13-23-13-41z"/></symbol>
 <pattern id="bk" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="22" height="22" fill="#a3212c"/><rect width="11" height="11" fill="#8a1a24"/><rect x="11" y="11" width="11" height="11" fill="#8a1a24"/><circle cx="11" cy="11" r="2.2" fill="#e9b7a8"/></pattern>
 </defs></svg><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
+<div class="wrap" id="chatwrap" hidden style="padding-top:0"><section class="panel" id="chatbox"><h2>Chat</h2><div id="msgs" class="msgs" aria-live="polite"></div><form id="chatf" class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="chatin" maxlength="300" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send"><button class="pri" type="submit">Invia</button></form></section></div>
 <script>const firebaseConfig = {
   apiKey: "AIzaSyDn2hR2sETK4GUiK3L6Avelzfvua0-j4ls",
   authDomain: "carta-al-cap.firebaseapp.com",
@@ -78,7 +85,7 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {getAuth,signInAnonymously,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import {getFirestore,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,limit,writeBatch} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {getFirestore,addDoc,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,limit,writeBatch} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const RN={11:'J',12:'Q',13:'K',14:'A'};
 const SU={H:'♥',D:'♦',C:'♣',S:'♠'};
@@ -155,7 +162,7 @@ const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let me=null,myName=LS.get('cac-name')||'',gid=null,G=null,games=[],msg='',loading=true,maxSel=null,trickKey='';
-let confirmDel=null;
+let confirmDel=null,chat=[],chatSeen=0,chatUnsub=null,chatVisible=false;
 let moves={},myMove={},myHand=null,HANDS={},blindCards={},subs=[],gamesUnsub=null;
 
 const key=g=>g?(g.r||0)+'-'+g.h:'';
@@ -248,10 +255,33 @@ function watchHost(){
   hostSubs.push(onSnapshot(collection(fs,'games',gid,'hands'),s=>{
     s.docs.forEach(d=>{const x=d.data();if(G&&x.k===key(G))HANDS[d.id]=x.cards});hostStep()},()=>{}));
 }
+const chatwrap=document.getElementById('chatwrap'),msgsEl=document.getElementById('msgs'),chatin=document.getElementById('chatin');
+function unread(){return chat.filter(m=>m.u!==me&&m.ts>chatSeen).length}
+function renderChat(){
+  chatwrap.hidden=!gid||!G;
+  const atBottom=msgsEl.scrollHeight-msgsEl.scrollTop-msgsEl.clientHeight<40;
+  msgsEl.innerHTML=chat.length?chat.map(m=>`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut">Nessun messaggio. Scrivi tu il primo!</p>';
+  if(atBottom||chat.length&&chat[chat.length-1].u===me)msgsEl.scrollTop=msgsEl.scrollHeight;
+  if(chatVisible)markSeen();
+}
+function markSeen(){const last=chat.length?chat[chat.length-1].ts:0;if(last>chatSeen){chatSeen=last;LS.set('cac-seen-'+gid,String(last));render()}}
+try{new IntersectionObserver(es=>{chatVisible=es[0].isIntersecting;if(chatVisible)markSeen()}).observe(document.getElementById('chatbox'))}catch(e){chatVisible=true}
+document.getElementById('chatf').addEventListener('submit',e=>{
+  e.preventDefault();const t=chatin.value.trim().slice(0,300);if(!t||!gid)return;
+  chatin.value='';
+  addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t,ts:Date.now()}).catch(fail('Messaggio non inviato.'));
+});
+function watchChat(id){
+  if(chatUnsub){chatUnsub();chatUnsub=null}chat=[];chatSeen=parseInt(LS.get('cac-seen-'+id)||'0',10)||0;
+  if(!id){renderChat();return}
+  chatUnsub=onSnapshot(query(collection(fs,'games',id,'chat'),orderBy('ts','desc'),limit(60)),s=>{chat=s.docs.map(d=>d.data()).reverse();renderChat();render()},e=>{console.error(e);msgsEl.innerHTML='<p class="small mut">Chat non disponibile: vanno aggiornate le regole di Firestore.</p>'});
+  renderChat();
+}
 function openGame(id){
   stopSubs();blindSubs.forEach(u=>u());blindSubs=[];hostSubs.forEach(u=>u());hostSubs=[];amHost=false;blindKey='';hk='';
   gid=id;G=null;moves={};myMove={};myHand=null;HANDS={};blindCards={};msg='';trickKey='';maxSel=null;
   try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch(e){}
+  watchChat(id);
   if(!id){render();return}
   subs.push(onSnapshot(doc(fs,'games',id),s=>{
     G=s.exists()?s.data():null;
@@ -277,7 +307,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v4 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v5 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -292,7 +322,7 @@ function rulesH(){return `<details class="panel"><summary>Regole</summary>
 function viewGame(){
   if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
-  const top=`<div class="row sp"><button data-act="back">← Partite</button><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
+  const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button><button data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
   if(G.status==='lobby'){
     const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
     return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
@@ -348,6 +378,7 @@ function render(){
   else h=gid?viewGame():viewLobby();
   if(msg)h=`<div class="err" role="alert">${esc(msg)}</div>`+h;
   app.innerHTML=h;
+  chatwrap.hidden=!gid||!G;
   if(fid){const el=document.getElementById(fid);if(el)el.focus()}
 }
 
@@ -360,6 +391,7 @@ app.addEventListener('click',e=>{
   if(a==='rename'){myName='';return render()}
   if(a==='del'){const id=b.dataset.id;if(confirmDel!==id){confirmDel=id;render();setTimeout(()=>{if(confirmDel===id){confirmDel=null;render()}},4000);return}
     confirmDel=null;if(gid===id)openGame(null);deleteDoc(doc(fs,'games',id)).catch(fail('Non riesco a eliminare la partita.'));return}
+  if(a==='chat'){document.getElementById('chatbox').scrollIntoView({behavior:'smooth'});setTimeout(()=>chatin.focus({preventScroll:true}),400);return}
   if(a==='new')return newGame();
   if(a==='open')return openGame(b.dataset.id);
   if(a==='back')return openGame(null);

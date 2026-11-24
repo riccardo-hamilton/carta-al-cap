@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function hostOf(g) { return get(/databases/$(database)/documents/games/$(g)).data.host; }
+    function isHost(g) { return signed() && hostOf(g) == request.auth.uid; }
+    match /games/{g} {
+      allow read: if signed();
+      allow create: if signed() && request.resource.data.host == request.auth.uid;
+      allow delete: if signed() && resource.data.host == request.auth.uid;
+      allow update: if signed() && (resource.data.host == request.auth.uid ||
+        (request.auth.uid in resource.data.players &&
+         request.resource.data.host == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['host'])));
+      match /hands/{u} {
+        allow read: if signed() && (request.auth.uid == u || isHost(g));
+        allow write: if isHost(g);
+      }
+      match /blind/{u} {
+        allow read: if signed() && request.auth.uid != u;
+        allow write: if isHost(g);
+      }
+      match /moves/{u} {
+        allow read: if signed() && (request.auth.uid == u || isHost(g));
+        allow write: if signed() && request.auth.uid == u;
+      }
+      match /chat/{m} {
+        allow read: if signed();
+        allow create: if signed() && request.resource.data.u == request.auth.uid
+          && request.resource.data.t is string && request.resource.data.t.size() <= 300;
+        allow delete: if isHost(g);
+      }
+    }
+  }
+}
