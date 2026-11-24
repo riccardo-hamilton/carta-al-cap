@@ -39,11 +39,9 @@ select{font:16px Inter;min-height:44px;border-radius:10px;padding:0 10px;backgro
 .slot{display:grid;justify-items:center;gap:4px;font-size:13px;color:var(--mut);max-width:80px}
 .slot span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
 .slot.win .card{box-shadow:0 0 0 3px var(--acc),0 6px 14px rgba(0,0,0,.35)}
-.card{display:inline-block;vertical-align:top;width:62px;height:88px;border-radius:9px;background:var(--card);color:var(--cink);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 6px 14px rgba(0,0,0,.35);position:relative;font-family:'DM Serif Display',serif;padding:0;border:0;flex:none}
-.card .c{position:absolute;top:5px;left:7px;font-size:18px;line-height:1;text-align:center}
-.card .b{position:absolute;inset:0;display:grid;place-items:center;font-size:32px}
-.card.red{color:var(--red)}
-.card.back{background:repeating-linear-gradient(45deg,#8d1f27 0 6px,#a8323a 6px 12px);box-shadow:inset 0 0 0 4px var(--card),0 6px 14px rgba(0,0,0,.35)}
+.card{display:inline-block;vertical-align:top;width:64px;height:90px;border-radius:7px;padding:0;border:0;background:none;flex:none;box-shadow:0 5px 12px rgba(0,0,0,.35);line-height:0}
+.card svg{width:100%;height:100%;display:block}
+.hand .card{width:72px;height:101px}
 .hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
 .hand .card.play{cursor:pointer;transition:transform .15s}
 .hand .card.play:hover,.hand .card.play:focus-visible{transform:translateY(-6px)}
@@ -57,10 +55,17 @@ th:first-child,td:first-child{text-align:left;white-space:normal}
 .scroll{overflow-x:auto}
 details summary{cursor:pointer;font-weight:600;min-height:32px}
 .note{font-size:14px;color:var(--mut);margin-top:10px}
+.danger{background:#c3242f;border-color:#c3242f;color:#fff}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
-@media(max-width:600px){.card{width:54px;height:78px}.card .b{font-size:28px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
-</style></head><body><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="sH" viewBox="0 0 100 100"><path d="M50 92C22 68 4 51 4 31 4 15 16 5 30 5c9 0 16 5 20 14C54 10 61 5 70 5c14 0 26 10 26 26 0 20-18 37-46 61z"/></symbol>
+<symbol id="sD" viewBox="0 0 100 100"><path d="M50 2C62 20 74 35 90 50 74 65 62 80 50 98 38 80 26 65 10 50 26 35 38 20 50 2z"/></symbol>
+<symbol id="sS" viewBox="0 0 100 100"><path d="M50 4C36 27 8 41 8 62c0 14 11 22 23 22 8 0 13-3 16-8-1 9-6 15-14 20h34c-8-5-13-11-14-20 3 5 8 8 16 8 12 0 23-8 23-22C92 41 64 27 50 4z"/></symbol>
+<symbol id="sC" viewBox="0 0 100 100"><circle cx="50" cy="27" r="19"/><circle cx="27" cy="57" r="19"/><circle cx="73" cy="57" r="19"/><circle cx="50" cy="50" r="10"/><path d="M46 55c0 18-4 30-13 41h34c-9-11-13-23-13-41z"/></symbol>
+<pattern id="bk" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="22" height="22" fill="#a3212c"/><rect width="11" height="11" fill="#8a1a24"/><rect x="11" y="11" width="11" height="11" fill="#8a1a24"/><circle cx="11" cy="11" r="2.2" fill="#e9b7a8"/></pattern>
+</defs></svg><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
 <script>const firebaseConfig = {
   apiKey: "AIzaSyDn2hR2sETK4GUiK3L6Avelzfvua0-j4ls",
   authDomain: "carta-al-cap.firebaseapp.com",
@@ -150,15 +155,37 @@ const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let me=null,myName=LS.get('cac-name')||'',gid=null,G=null,games=[],msg='',loading=true,maxSel=null,trickKey='';
+let confirmDel=null;
 let moves={},myMove={},myHand=null,HANDS={},blindCards={},subs=[],gamesUnsub=null;
 
 const key=g=>g?(g.r||0)+'-'+g.h:'';
 function nm(id){if(id===me)return 'Tu';return (G&&G.names&&G.names[id])||'Giocatore'}
+const PIPS={2:[[125,70],[125,280,1]],3:[[125,70],[125,175],[125,280,1]],4:[[75,70],[175,70],[75,280,1],[175,280,1]],
+5:[[75,70],[175,70],[125,175],[75,280,1],[175,280,1]],6:[[75,70],[175,70],[75,175],[175,175],[75,280,1],[175,280,1]],
+7:[[75,70],[175,70],[125,122],[75,175],[175,175],[75,280,1],[175,280,1]],8:[[75,70],[175,70],[125,122],[75,175],[175,175],[125,228,1],[75,280,1],[175,280,1]],
+9:[[75,70],[175,70],[75,140],[175,140],[125,175],[75,210,1],[175,210,1],[75,280,1],[175,280,1]],
+10:[[75,70],[175,70],[125,105],[75,140],[175,140],[75,210,1],[175,210,1],[125,245,1],[75,280,1],[175,280,1]]};
+const pip=(s,x,y,z,f)=>`<use href="#s${s}" x="${x-z/2}" y="${y-z/2}" width="${z}" height="${z}"${f?` transform="rotate(180 ${x} ${y})"`:''}/>`;
+function cardFace(c){
+  const r=rk(c),s=st(c),red='HD'.includes(s),col=red?'#c3242f':'#16181a',R=esc(rname(c));
+  const corner=`<text x="27" y="52" text-anchor="middle" font-size="${R.length>1?40:46}">${R}</text>${pip(s,27,78,28)}`;
+  let mid='';
+  if(r<=10)mid=PIPS[r].map(p=>pip(s,p[0],p[1],46,p[2])).join('');
+  else if(r===14)mid=pip(s,125,175,s==='S'?130:105);
+  else mid=`<rect x="52" y="48" width="146" height="254" rx="10" fill="${red?'#fbe9e6':'#eceef2'}" stroke="${col}" stroke-width="3"/>
+<rect x="60" y="56" width="130" height="238" rx="6" fill="none" stroke="${col}" stroke-width="1" opacity=".5"/>
+<path d="M60 175 H190" stroke="${col}" stroke-width="1" opacity=".35"/>
+${pip(s,125,92,40)}${pip(s,125,258,40,1)}
+<text x="125" y="208" text-anchor="middle" font-size="96">${R}</text>
+<text x="125" y="208" text-anchor="middle" font-size="96" transform="rotate(180 125 175)" opacity=".18">${R}</text>`;
+  return `<svg viewBox="0 0 250 350" fill="${col}" font-family="'DM Serif Display',serif"><rect x="2" y="2" width="246" height="346" rx="18" fill="#fffdf8" stroke="#d8d2c4" stroke-width="3"/>${corner}<g transform="rotate(180 125 175)">${corner}</g>${mid}</svg>`;
+}
+const BACK=`<svg viewBox="0 0 250 350"><rect x="2" y="2" width="246" height="346" rx="18" fill="#fffdf8" stroke="#d8d2c4" stroke-width="3"/><rect x="16" y="16" width="218" height="318" rx="10" fill="url(#bk)"/><rect x="16" y="16" width="218" height="318" rx="10" fill="none" stroke="#7a1820" stroke-width="3"/><circle cx="125" cy="175" r="38" fill="#fffdf8" stroke="#7a1820" stroke-width="3"/><text x="125" y="190" text-anchor="middle" font-size="40" font-family="'DM Serif Display',serif" fill="#9e1f2a">C</text></svg>`;
 function cardH(c,cls='',attr=''){
-  if(!c)return `<span class="card back ${cls}" ${attr} aria-label="Carta coperta"></span>`;
-  const red='HD'.includes(st(c))?' red':'';const r=esc(rname(c)),s=SU[st(c)]||'';
+  if(!c)return `<span class="card back ${cls}" ${attr} role="img" aria-label="Carta coperta">${BACK}</span>`;
   const tag=cls.includes('play')?'button':'span';
-  return `<${tag} class="card${red} ${cls}" ${attr} aria-label="${r} ${s}"><span class="c">${r}<br>${s}</span><span class="b">${s}</span></${tag}>`;
+  const nmS={H:'cuori',D:'quadri',C:'fiori',S:'picche'}[st(c)];
+  return `<${tag} class="card ${cls}" ${attr} aria-label="${esc(rname(c))} di ${nmS}">${cardFace(c)}</${tag}>`;
 }
 const sortHand=h=>[...h].sort((a,b)=>rk(b)-rk(a)||'SHDC'.indexOf(st(a))-'SHDC'.indexOf(st(b)));
 const sign=n=>n>0?'+'+n:String(n);
@@ -243,13 +270,14 @@ function newGame(){
   const to=setTimeout(()=>{msg='Firebase non risponde: la partita non è ancora salvata. [timeout]';render()},12000);
   setDoc(doc(fs,'games',id),g).then(()=>{clearTimeout(to);msg='';openGame(id);writeMove({join:true})}).catch(e=>{clearTimeout(to);fail('Non riesco a creare la partita.')(e)});
 }
+function delBtn(id,small){const c=confirmDel===id;return `<button data-act="del" data-id="${esc(id)}" class="${c?'danger':''}" aria-label="Elimina partita">${c?'Sicuro? Elimina':(small?'Elimina':'Elimina partita')}</button>`}
 function viewLobby(){
   const open=games.filter(g=>g.status==='lobby');
   const mine=games.filter(g=>g.status!=='lobby'&&g.status!=='end'&&(g.players||[]).includes(me));
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
-  const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><button data-act="open" data-id="${esc(g.id)}">${label}</button></div>`;
+  const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v3 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v4 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -264,12 +292,12 @@ function rulesH(){return `<details class="panel"><summary>Regole</summary>
 function viewGame(){
   if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
-  const top=`<div class="row sp"><button data-act="back">← Partite</button><span class="small mut">Host: ${esc(nm(G.host))}</span></div>`;
+  const top=`<div class="row sp"><button data-act="back">← Partite</button><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
   if(G.status==='lobby'){
     const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
     return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
     ${host?`<div class="row" style="margin-top:14px"><label for="mx">Carte massime</label><select id="mx">${Array.from({length:mx},(_,i)=>i+1).map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('')}</select><span class="small mut">${2*sel-1} mani</span></div>
-      <div class="row" style="margin-top:12px"><button class="pri" data-act="start" ${n<2?'disabled':''}>Inizia la partita</button><button data-act="del">Annulla</button></div>${n<2?'<p class="note">Servono almeno 2 giocatori: gli amici aprono questa pagina e toccano “Entra”.</p>':''}`
+      <div class="row" style="margin-top:12px"><button class="pri" data-act="start" ${n<2?'disabled':''}>Inizia la partita</button></div>${n<2?'<p class="note">Servono almeno 2 giocatori: gli amici aprono questa pagina e toccano “Entra”.</p>':''}`
     :inGame?`<p class="note">Aspetta che l'host inizi la partita.</p><button data-act="leave">Esci</button>`
     :`<div class="row" style="margin-top:12px"><button class="pri" data-act="join" data-x>Siediti al tavolo</button></div>`}</div>`;
   }
@@ -330,6 +358,8 @@ app.addEventListener('click',e=>{
   const a=b.dataset.act;msg='';
   if(a==='name'){const v=(document.getElementById('nick').value||'').trim().slice(0,20);if(!v){msg='Scrivi un nome.';return render()}myName=v;LS.set('cac-name',v);return render()}
   if(a==='rename'){myName='';return render()}
+  if(a==='del'){const id=b.dataset.id;if(confirmDel!==id){confirmDel=id;render();setTimeout(()=>{if(confirmDel===id){confirmDel=null;render()}},4000);return}
+    confirmDel=null;if(gid===id)openGame(null);deleteDoc(doc(fs,'games',id)).catch(fail('Non riesco a eliminare la partita.'));return}
   if(a==='new')return newGame();
   if(a==='open')return openGame(b.dataset.id);
   if(a==='back')return openGame(null);
@@ -342,7 +372,7 @@ app.addEventListener('click',e=>{
   if(a==='next'&&G.host===me)return saveG(deal(full(),G.h+1),true);
   if(a==='again'&&G.host===me)return saveG(start(full(),(G.seq.length+1)/2),true);
   if(a==='takeover'){updateDoc(doc(fs,'games',gid),{host:me}).catch(fail('Non riesco a prendere il controllo.'));return}
-  if(a==='del'&&G.host===me){const id=gid;openGame(null);deleteDoc(doc(fs,'games',id)).catch(()=>{});return}
+  
 });
 
 
