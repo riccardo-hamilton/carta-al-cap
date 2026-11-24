@@ -126,7 +126,8 @@ tr.meRow td{font-weight:700}
 #chatwrap .quick{padding:5px 0 0}#chatwrap .quick button{min-height:30px;font-size:13px;padding:0 10px}
 #chatwrap #chatin{min-height:38px}#chatwrap form button{min-height:38px;padding:0 14px}
 body.fit{display:flex;flex-direction:column;height:100dvh}
-body.fit .wrap#app{flex:1;min-height:0}
+body.fit .wrap#app{flex:1;min-height:0;width:100%}
+.g,.gtable{width:100%}
 .sheet .panel{margin:0;border:0;background:none;padding:0}
 .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:40;max-width:88vw;background:var(--card);color:var(--cink);padding:8px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.4);font-size:14px;animation:rowin .3s ease-out;cursor:pointer}
 body.fit{overflow:hidden}
@@ -398,7 +399,7 @@ function unread(){return chat.filter(m=>m.k!=='s'&&m.u!==me&&m.ts>chatSeen).leng
 function renderChat(){
   chatwrap.hidden=!(gid&&G);chatVisible=!!(gid&&G);
   const atBottom=msgsEl.scrollHeight-msgsEl.scrollTop-msgsEl.clientHeight<40;
-  msgsEl.innerHTML=chat.length?chat.map(m=>m.k==='s'?`<div class="stkline">${esc(m.u===me?'Tu':(m.n||'Giocatore'))} ha appiccicato «${esc(m.t)}» a ${esc(m.to===me?'te':((G&&G.names&&G.names[m.to])||'qualcuno'))}</div>`:`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut" style="margin:0">Nessun messaggio. Scrivi tu il primo!</p>';
+  msgsEl.innerHTML=chat.length?chat.map(m=>m.k==='s'?`<div class="stkline">${m.u===me?'Hai appiccicato':esc(m.n||'Giocatore')+' ha appiccicato'} «${esc(m.t)}» a ${esc(m.to===me?'te':((G&&G.names&&G.names[m.to])||'qualcuno'))}</div>`:`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut" style="margin:0">Nessun messaggio. Scrivi tu il primo!</p>';
   if(atBottom||chat.length&&chat[chat.length-1].u===me)msgsEl.scrollTop=msgsEl.scrollHeight;
   if(chatVisible)markSeen();
 }
@@ -477,7 +478,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v14 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v15 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
