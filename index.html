@@ -103,6 +103,17 @@ tr.rowin{animation:rowin .4s ease-out both}
 .stkopts button:nth-child(even){transform:rotate(2deg)}
 .stkline{font-size:13px;color:var(--mut);font-style:italic;text-align:center}
 @media(prefers-reduced-motion:reduce){.sticker{animation:none}.pl.hit{animation:none}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:6px 0 10px}
+.kpis div{background:rgba(0,0,0,.18);border-radius:12px;padding:10px 12px}
+.kpis b{display:block;font:400 30px/1.1 'DM Serif Display',serif}
+.kpis span{font-size:13px;color:var(--mut)}
+.awards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
+.award{background:var(--card);color:var(--cink);border-radius:14px;padding:12px 14px;transform:rotate(-1deg);box-shadow:0 6px 14px rgba(0,0,0,.3)}
+.award:nth-child(2){transform:rotate(1deg)}
+.award span{font-size:12px;font-weight:700;color:#c3242f}
+.award b{display:block;font:400 26px/1.1 'DM Serif Display',serif}
+.award small{color:#555}
+tr.meRow td{font-weight:700}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -126,7 +137,7 @@ tr.rowin{animation:rowin .4s ease-out both}
 
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {getAuth,signInAnonymously,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import {getFirestore,addDoc,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,limit,writeBatch} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {getFirestore,getDocs,addDoc,doc,collection,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,limit,writeBatch} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const RN={11:'J',12:'Q',13:'K',14:'A'};
 const SU={H:'♥',D:'♦',C:'♣',S:'♠'};
@@ -416,7 +427,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v11 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v12 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -496,12 +507,66 @@ function viewGame(){
   return top+bar+pls+stkPicker()+orderH()+`<div class="table">${center}</div>`+handH+hist+take+leaveH;
 }
 
+/* ---------- statistiche ---------- */
+let view='lobby',ST=null,stLoading=false;
+const nkey=n=>String(n||'').trim().toLowerCase();
+async function loadStats(){
+  stLoading=true;ST=null;render();
+  try{
+    const qs=await getDocs(query(collection(fs,'games'),orderBy('created','desc'),limit(300)));
+    const gs=qs.docs.map(d=>Object.assign({id:d.id},d.data()));
+    const chats=await Promise.all(gs.map(g=>getDocs(collection(fs,'games',g.id,'chat')).then(c=>c.docs.map(d=>d.data())).catch(()=>[])));
+    const P={};
+    const get=(g,id)=>{const name=(g.names&&g.names[id])||'Giocatore',k=nkey(name);return P[k]=P[k]||{name,me:false,games:0,wins:0,hands:0,exact:0,pts:0,best:null,out:0,sent:0,recv:0,fav:{},got:{},msgs:0,vs:{}}};
+    gs.forEach((g,gi)=>{
+      if(g.names&&g.names[me])get(g,me).me=true;
+      if(g.status==='end'&&g.history&&g.history.length){
+        const fin=g.players||[],all=[...fin,...(g.out||[])];
+        const top=Math.max(...fin.map(id=>g.scores[id]||0));
+        for(const id of all){const p=get(g,id);p.games++;const sc=g.scores[id]||0;p.pts+=sc;if(p.best==null||sc>p.best)p.best=sc;
+          if((g.out||[]).includes(id))p.out++;else if(sc===top)p.wins++}
+      }
+      for(const h of g.history||[])for(const id in h.rows){const p=get(g,id),r=h.rows[id];p.hands++;if(r.b===r.t)p.exact++}
+      for(const m of chats[gi]){
+        if(!m.u)continue;const a=get({names:Object.assign({},g.names,{[m.u]:(g.names&&g.names[m.u])||m.n})},m.u);
+        if(m.k==='s'){a.sent++;a.fav[m.t]=(a.fav[m.t]||0)+1;if(m.to){const t=get(g,m.to);t.recv++;t.got[m.t]=(t.got[m.t]||0)+1;const tn=t.name;a.vs[tn]=(a.vs[tn]||0)+1}}
+        else a.msgs++;
+      }
+    });
+    if(P[nkey(myName)])P[nkey(myName)].me=true;
+    ST={list:Object.values(P).filter(p=>p.games||p.hands||p.sent||p.msgs),ngames:gs.filter(g=>g.status==='end').length};
+  }catch(e){console.error(e);msg='Non riesco a caricare le statistiche ['+(e&&e.code||'errore')+']'}
+  stLoading=false;render();
+}
+const pct=(a,b)=>b?Math.round(a*100/b)+'%':'–';
+const topOf=o=>{const e=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return e?`${e[0]} (${e[1]})`:'–'};
+function viewStats(){
+  const back=`<div class="row sp"><button data-act="lobby">← Partite</button><button data-act="stats">Aggiorna</button></div><h1>Statistiche</h1>`;
+  if(stLoading||!ST)return back+`<p class="mut">Conto partite, mani e ziopere…</p>`;
+  const L=[...ST.list].sort((a,b)=>b.wins-a.wins||(b.wins/(b.games||1))-(a.wins/(a.games||1))||b.pts-a.pts);
+  if(!L.length)return back+`<div class="panel"><p class="mut">Ancora niente da contare: finite una partita e tornate qui.</p></div>`;
+  const mine=L.find(p=>p.me);
+  const meH=mine?`<div class="panel"><h2>Le tue</h2><div class="kpis">
+    <div><b>${mine.games}</b><span>partite</span></div><div><b>${mine.wins}</b><span>vinte · ${pct(mine.wins,mine.games)}</span></div>
+    <div><b>${pct(mine.exact,mine.hands)}</b><span>mani azzeccate (${mine.exact}/${mine.hands})</span></div><div><b>${mine.pts>0?'+':''}${mine.pts}</b><span>punti totali</span></div>
+    <div><b>${mine.sent}</b><span>ziopere inviate</span></div><div><b>${mine.recv}</b><span>ziopere ricevute</span></div></div>
+    <p class="small mut">Preferita: ${esc(topOf(mine.fav))} · Bersaglio preferito: ${esc(topOf(mine.vs))} · Record in una partita: ${mine.best==null?'–':mine.best}</p></div>`:'';
+  const zMost=[...L].sort((a,b)=>b.sent-a.sent)[0],zHit=[...L].sort((a,b)=>b.recv-a.recv)[0],acc=[...L].filter(p=>p.hands>=5).sort((a,b)=>b.exact/b.hands-a.exact/a.hands)[0];
+  const awards=`<div class="awards">
+    ${zMost&&zMost.sent?`<div class="award"><span>Il più velenoso</span><b>${esc(zMost.name)}</b><small>${zMost.sent} ziopere inviate</small></div>`:''}
+    ${zHit&&zHit.recv?`<div class="award"><span>Il più bersagliato</span><b>${esc(zHit.name)}</b><small>${zHit.recv} ziopere ricevute</small></div>`:''}
+    ${acc?`<div class="award"><span>Il più preciso</span><b>${esc(acc.name)}</b><small>${pct(acc.exact,acc.hands)} di mani azzeccate</small></div>`:''}</div>`;
+  const table=`<div class="panel"><h2>Classifica generale</h2><p class="small mut">${ST.ngames} partite finite. Ordinata per vittorie.</p><div class="scroll"><table><thead><tr><th>Giocatore</th><th>Partite</th><th>Vinte</th><th>% vinte</th><th>Mani azzeccate</th><th>Punti</th><th>Ziopere inv.</th><th>Ziopere ric.</th><th>Messaggi</th><th>Abbandoni</th></tr></thead><tbody>
+    ${L.map((p,i)=>`<tr class="${p.me?'meRow':''}"><td>${i+1}. ${esc(p.name)}${p.me?' (tu)':''}</td><td>${p.games}</td><td>${p.wins}</td><td>${pct(p.wins,p.games)}</td><td>${pct(p.exact,p.hands)}</td><td>${p.pts}</td><td>${p.sent}</td><td>${p.recv}</td><td>${p.msgs}</td><td>${p.out}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">I giocatori sono riconosciuti dal nome: usa sempre lo stesso, anche da telefoni diversi.</p></div>`;
+  return back+meH+awards+table;
+}
 function render(){
   const ae=document.activeElement,fid=ae&&ae.id;
   let h='';
   if(!me)h=`<h1>Carta al Cap</h1><p class="mut">${loading?'Collegamento…':'Non riesco a collegarmi. Controlla la connessione e ricarica.'}</p>`;
   else if(!myName)h=viewName();
-  else h=gid?viewGame():viewLobby();
+  else h=gid?viewGame():view==='stats'?viewStats():viewLobby();
   if(msg)h=`<div class="err" role="alert">${esc(msg)}</div>`+h;
   app.innerHTML=h;
   chatwrap.hidden=!gid||!G;
@@ -529,7 +594,9 @@ app.addEventListener('click',e=>{
   if(a==='chat'){document.getElementById('chatbox').scrollIntoView({behavior:'smooth'});setTimeout(()=>chatin.focus({preventScroll:true}),400);return}
   if(a==='new')return newGame();
   if(a==='open')return openGame(b.dataset.id);
-  if(a==='back')return openGame(null);
+  if(a==='back'){view='lobby';return openGame(null)}
+  if(a==='stats'){view='stats';if(gid)openGame(null);try{history.replaceState(null,'','#stats')}catch(e){}return loadStats()}
+  if(a==='lobby'){view='lobby';try{history.replaceState(null,'',location.pathname)}catch(e){}return render()}
   if(a==='join')return writeMove({join:true});
   if(a==='leave'){writeMove({join:false});return openGame(null)}
   if(a==='bid')return writeMove({join:true,bid:{r:G.r,h:G.h,v:parseInt(b.dataset.v,10)}});
@@ -551,7 +618,7 @@ onAuthStateChanged(auth,u=>{
   me=u.uid;loading=false;
   if(!gamesUnsub)gamesUnsub=onSnapshot(query(collection(fs,'games'),orderBy('created','desc'),limit(40)),s=>{games=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(!gid)render()},fail('Non riesco a leggere le partite: controlla le regole di Firestore.'));
   const h=(location.hash||'').slice(1);
-  if(/^g[a-z0-9]+$/.test(h)&&!gid)openGame(h);else render();
+  if(/^g[a-z0-9]+$/.test(h)&&!gid)openGame(h);else if(h==='stats'){view='stats';loadStats()}else render();
 });
 setTimeout(()=>{if(!me){loading=false;render()}},10000);
 render();
