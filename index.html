@@ -62,6 +62,15 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 .msg b{display:block;font-size:12px;opacity:.75}
 #chatin{font:16px Inter;min-height:44px;border-radius:10px;border:0;padding:0 12px;flex:1 1 auto;width:100%}
 .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;margin-left:6px;text-align:center}
+.order{margin:0 0 12px}
+.order ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0;padding:0}
+.order li{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:99px;background:rgba(0,0,0,.2);font-size:14px;white-space:nowrap}
+.order li .pos{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:99px;background:rgba(255,255,255,.14);font-weight:700}
+.order li.done{opacity:.55}
+.order li.now{background:var(--acc);color:#fff;font-weight:700}
+.order li.now .pos{background:rgba(255,255,255,.3)}
+.order li.mine:not(.now){box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.tag.pos{margin:0 2px 0 0;background:rgba(255,255,255,.2);color:var(--ink)}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -122,7 +131,7 @@ function finish(g){
 function afterTrick(g){
   g.lastTrick=g.trick;
   if(g.players.every(id=>g.hands[id].length===0))return finish(g);
-  g.status='play';g.trickNo++;g.trick=[];g.turn=g.winner;
+  g.status='play';g.trickNo++;g.trick=[];g.turn=g.winner;g.leader=g.winner;
   return g;
 }
 function advance(g,mv){
@@ -141,7 +150,7 @@ function advance(g,mv){
         for(const id of order)if(rk(g.hands[id][0])>rk(g.hands[w][0]))w=id;
         g.taken[w]=1;g.blindWinner=w;return finish(g);
       }
-      g.status='play';g.trickNo=0;g.trick=[];g.turn=g.players[(g.dealer+1)%n];
+      g.status='play';g.trickNo=0;g.trick=[];g.turn=g.players[(g.dealer+1)%n];g.leader=g.turn;
     }
     return g;
   }
@@ -335,7 +344,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v6 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v7 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -347,6 +356,19 @@ function rulesH(){return `<details class="panel"><summary>Regole</summary>
 <p><b>Mani successive:</b> guardi le tue carte e tutti dichiarano insieme quante prese faranno. Apre chi siede dopo il mazziere, poi apre chi ha vinto l'ultima presa. Vince la carta più alta (A, K, Q, J, 10…2); a parità vince quella giocata prima.</p>
 <p><b>Punti:</b> se fai esattamente le prese dichiarate guadagni quel numero (0 = 0 punti). Se sbagli perdi la differenza tra dichiarate e fatte.</p></details>`}
 
+function order(){
+  const P=G.players||[];if(!P.length)return[];
+  let lead=G.status==='bid'||G.status==='handEnd'?P[(G.dealer+1)%P.length]:(G.leader||(G.trick&&G.trick[0]&&G.trick[0].p)||G.turn);
+  const i=Math.max(0,P.indexOf(lead));return rot(P,i);
+}
+function orderH(){
+  if(!['bid','play','trick'].includes(G.status)||G.blind)return'';
+  const O=order(),played=new Set((G.trick||[]).map(x=>x.p));
+  const title=G.status==='bid'?'Ordine della prima presa':`Ordine del giro · presa ${G.trickNo+1}`;
+  return `<div class="order" aria-label="${title}"><div class="small mut">${title}</div><ol>${O.map((id,i)=>{
+    const cls=G.status==='play'&&G.turn===id?'now':played.has(id)?'done':'';
+    return `<li class="${cls}${id===me?' mine':''}"><span class="pos">${i+1}°</span>${esc(nm(id))}${cls==='now'?' <span class="small">· gioca</span>':cls==='done'?' ✓':''}</li>`}).join('')}</ol></div>`;
+}
 function viewGame(){
   if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
@@ -365,17 +387,18 @@ function viewGame(){
   const pls=`<div class="players">${P.map(id=>{
     const b=G.bids&&G.bids[id];const bidTxt=G.status==='end'?'':G.status==='bid'?(b!=null?'ha dichiarato ✓':'sta pensando…'):`dichiara ${b} · prese ${G.taken[id]||0}`;
     const bc=G.status==='handEnd'?(G.blindCards||{})[id]:blindCards[id];const blindCard=G.blind&&(id!==me||G.status==='handEnd')?`<div style="margin-top:6px">${cardH(bc,'',G.blindWinner===id?'style="box-shadow:0 0 0 3px var(--acc)"':'')}</div>`:(G.blind&&id===me?`<div style="margin-top:6px">${cardH(null)}</div>`:'');
-    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}"><div class="n">${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}</div>`}).join('')}</div>`;
+    const posI=['bid','play','trick'].includes(G.status)&&!G.blind?order().indexOf(id):-1;
+    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}"><div class="n">${posI>=0?`<span class="tag pos">${posI+1}°</span> `:''}${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}</div>`}).join('')}</div>`;
   let center='';
   const showTrick=(G.status==='trick'||G.status==='handEnd')&&!G.blind?(G.status==='trick'?G.trick:G.lastTrick||[]):G.trick||[];
   const trickH=t=>`<div class="trick">${t.map(x=>`<div class="slot ${(G.status==='trick'||G.status==='handEnd')&&x.p===G.winner?'win':''}">${cardH(x.c)}<span>${esc(nm(x.p))}</span></div>`).join('')}</div>`;
   if(G.status==='bid'){
     const mine=myMove.bid&&myMove.bid.h===G.h&&myMove.bid.r===G.r?myMove.bid.v:null;
-    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`:`<div class="big">Dichiarazioni</div><p class="mut">Quante prese farai? Tutti dichiarano insieme, i numeri si vedono quando hanno finito tutti.</p>`;
+    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`:`<div class="big">Dichiarazioni</div><p class="mut">Quante prese farai? Tutti dichiarano insieme, i numeri si vedono quando hanno finito tutti.</p><p>Apre <b>${esc(nm(order()[0]))}</b>${inGame&&order().indexOf(me)>=0?` · tu sei <b>${order().indexOf(me)+1}°</b> di ${P.length}`:''}</p>`;
     if(inGame)center+=mine==null?`<div class="bids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}" data-x>${i}</button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. In attesa degli altri…</p>`;
   }else if(G.status==='play'){
     center=G.trick.length?trickH(G.trick):`<div class="big">Presa ${G.trickNo+1} di ${k}</div>`;
-    center+=`<p class="${G.turn===me?'':'mut'}">${G.turn===me?'<b>Tocca a te</b>: gioca una carta':'Tocca a '+esc(nm(G.turn))}</p>`;
+    const myPos=order().indexOf(me);center+=`<p class="${G.turn===me?'':'mut'}">${G.turn===me?'<b>Tocca a te</b>: gioca una carta':'Tocca a '+esc(nm(G.turn))}${inGame&&myPos>=0?` · in questo giro sei <b>${myPos+1}°</b> di ${P.length}`:''}</p>`;
   }else if(G.status==='trick'){
     center=trickH(G.trick)+`<p>Prende <b>${esc(nm(G.winner))}</b></p>`;
   }else if(G.status==='handEnd'){
@@ -395,7 +418,7 @@ function viewGame(){
   if(!inGame&&G.status!=='end')handH=`<p class="note">Stai guardando la partita: le carte dei giocatori restano nascoste.</p>`;
   const hist=G.history&&G.history.length?`<details class="panel"><summary>Punteggio mano per mano</summary><div class="scroll"><table><thead><tr><th>Mano</th>${P.map(id=>`<th>${esc(nm(id))}</th>`).join('')}</tr></thead><tbody>${G.history.map((r,i)=>`<tr><td>${i+1} (${r.c})</td>${P.map(id=>{const x=r.rows[id];return `<td class="${x.pt>0?'pos':x.pt<0?'neg':''}">${x.b}/${x.t} ${sign(x.pt)}</td>`}).join('')}</tr>`).join('')}<tr><td><b>Totale</b></td>${P.map(id=>`<td><b>${G.scores[id]}</b></td>`).join('')}</tr></tbody></table></div><p class="note">Ogni cella: dichiarate/fatte e punti.</p></details>`:'';
   const take=inGame&&!host&&G.status!=='end'?`<details class="note"><summary>La partita è ferma?</summary><p>La partita avanza solo mentre l'host ha la pagina aperta. Se l'host è uscito, puoi prendere il suo posto.</p><button data-act="takeover">Diventa host</button></details>`:'';
-  return top+bar+pls+`<div class="table">${center}</div>`+handH+hist+take;
+  return top+bar+pls+orderH()+`<div class="table">${center}</div>`+handH+hist+take;
 }
 
 function render(){
