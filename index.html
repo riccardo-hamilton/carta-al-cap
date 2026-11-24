@@ -56,7 +56,7 @@ th:first-child,td:first-child{text-align:left;white-space:normal}
 details summary{cursor:pointer;font-weight:600;min-height:32px}
 .note{font-size:14px;color:var(--mut);margin-top:10px}
 .danger{background:#c3242f;border-color:#c3242f;color:#fff}
-.msgs{display:grid;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
+.msgs{display:grid;align-content:start;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
 .msg{max-width:85%;padding:7px 11px;border-radius:14px;background:rgba(255,255,255,.1);overflow-wrap:anywhere;justify-self:start}
 .msg.me{background:var(--card);color:var(--cink);justify-self:end}
 .msg b{display:block;font-size:12px;opacity:.75}
@@ -114,6 +114,46 @@ tr.rowin{animation:rowin .4s ease-out both}
 .award b{display:block;font:400 26px/1.1 'DM Serif Display',serif}
 .award small{color:#555}
 tr.meRow td{font-weight:700}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30}
+.sheet,#chatwrap{position:fixed;left:0;right:0;bottom:0;z-index:31;max-height:75dvh;overflow:auto;background:var(--felt2);border-radius:18px 18px 0 0;padding:14px max(4vw,14px) calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.4);max-width:760px;margin:0 auto}
+#chatwrap{padding:0;display:flex;flex-direction:column}#chatwrap[hidden]{display:none}
+#chatwrap .panel{margin:0;border:0;background:none;display:flex;flex-direction:column;min-height:0}
+#chatwrap .msgs{max-height:none;flex:1;min-height:120px;height:38dvh}
+.sheet .panel{margin:0;border:0;background:none;padding:0}
+.toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:40;max-width:88vw;background:var(--card);color:var(--cink);padding:8px 14px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.4);font-size:14px;animation:rowin .3s ease-out;cursor:pointer}
+body.fit{overflow:hidden}
+body.fit .wrap#app{height:100dvh;padding:calc(6px + env(safe-area-inset-top)) 10px calc(6px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.g{display:flex;flex-direction:column;gap:8px;height:100%;min-height:0}
+.gtop{display:flex;align-items:center;gap:6px}
+.ib{min-height:40px;min-width:40px;padding:0 10px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
+.ib.wide{font-size:15px}
+.ginfo{flex:1;min-width:0;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ginfo small{display:block;color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.gpl{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+.chip{background:rgba(0,0,0,.22);border:2px solid transparent;border-radius:12px;padding:5px 8px;font-size:13px;line-height:1.3;position:relative}
+.chip.tappable{cursor:pointer}.chip.mine{border-color:rgba(255,255,255,.35)}
+.chip.turn{border-color:var(--acc);animation:pulse 1.6s ease-in-out infinite}
+.chip.done{opacity:.6}.chip.out{opacity:.45}
+.chip .cn{display:flex;align-items:center;gap:5px;font-weight:700}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .pos{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:99px;background:rgba(255,255,255,.18);font-size:11px}
+.chip.turn .pos{background:var(--acc);color:#fff}
+.chip .dl{flex:none;font-style:normal;font-size:10px;font-weight:800;background:var(--card);color:var(--cink);border-radius:5px;padding:0 4px}
+.chip .sc{margin-left:auto;flex:none;font-weight:800;font-size:13px;background:rgba(255,255,255,.14);border-radius:6px;padding:0 5px}
+.chip .cl{color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chip .cl b{color:var(--ink)}
+.chip .mini{margin-top:4px}.chip .mini .card{width:44px;height:62px}
+.chip.hit{animation:hit .45s ease-out}
+.gtable{flex:1;min-height:0;overflow:auto;border-radius:28px;background:rgba(0,0,0,.16);box-shadow:inset 0 0 0 2px rgba(255,255,255,.08),inset 0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;text-align:center}
+.gtable .big{font-size:21px}.gtable p{margin:2px 0}.sm{font-size:14px}
+.gtable .yt{font:400 22px 'DM Serif Display',serif;color:#fff;background:var(--acc);padding:2px 14px;border-radius:99px}
+.tip{font-size:12px;color:var(--mut);opacity:.8}
+table.tight{font-size:14px;width:auto;min-width:min(100%,320px)}table.tight td,table.tight th{padding:4px 7px}
+.ghand{display:flex;justify-content:center;padding:4px 0 2px}
+.ghand .card{width:72px;height:101px;margin-left:var(--ov)}.ghand .card:first-child{margin-left:0}
+.ghand .card.play{cursor:pointer;transition:transform .15s}.ghand .card.play:active,.ghand .card.play:hover{transform:translateY(-10px)}
+.ghand.can{filter:drop-shadow(0 0 6px rgba(255,107,91,.6))}
+@media(max-width:600px){.ghand .card{width:60px;height:84px}.gtable .slot .card{width:50px;height:70px}}
+@media(max-height:700px){.ghand .card{width:54px;height:76px}.gpl .chip{padding:3px 7px}}
 .err{background:#5e1e1e;border-radius:12px;padding:10px 14px;margin:10px 0}
 @media(max-width:600px){.card{width:56px;height:79px}.hand .card{width:62px;height:87px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.hand .card.play{transition:none}}
@@ -124,7 +164,7 @@ tr.meRow td{font-weight:700}
 <symbol id="sC" viewBox="0 0 100 100"><circle cx="50" cy="27" r="19"/><circle cx="27" cy="57" r="19"/><circle cx="73" cy="57" r="19"/><circle cx="50" cy="50" r="10"/><path d="M46 55c0 18-4 30-13 41h34c-9-11-13-23-13-41z"/></symbol>
 <pattern id="bk" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="22" height="22" fill="#a3212c"/><rect width="11" height="11" fill="#8a1a24"/><rect x="11" y="11" width="11" height="11" fill="#8a1a24"/><circle cx="11" cy="11" r="2.2" fill="#e9b7a8"/></pattern>
 </defs></svg><div class="wrap" id="app"><h1>Carta al Cap</h1><p class="mut">Caricamento del tavolo…</p><noscript>Serve JavaScript.</noscript></div>
-<div class="wrap" id="chatwrap" hidden style="padding-top:0"><section class="panel" id="chatbox"><h2>Chat</h2><div id="msgs" class="msgs" aria-live="polite"></div><div id="quick" class="quick"></div><form id="chatf" class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="chatin" maxlength="300" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send"><button class="pri" type="submit">Invia</button></form></section></div>
+<div class="wrap" id="chatwrap" hidden style="padding-top:0"><section class="panel" id="chatbox"><div class="row sp"><h2 style="margin:0">Chat</h2><button type="button" id="chatclose">Chiudi</button></div><div id="msgs" class="msgs" aria-live="polite"></div><div id="quick" class="quick"></div><form id="chatf" class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="chatin" maxlength="300" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send"><button class="pri" type="submit">Invia</button></form></section></div>
 <script>const firebaseConfig = {
   apiKey: "AIzaSyDn2hR2sETK4GUiK3L6Avelzfvua0-j4ls",
   authDomain: "carta-al-cap.firebaseapp.com",
@@ -348,16 +388,18 @@ function sounds(p,g){
 const chatwrap=document.getElementById('chatwrap'),msgsEl=document.getElementById('msgs'),chatin=document.getElementById('chatin');
 function unread(){return chat.filter(m=>m.k!=='s'&&m.u!==me&&m.ts>chatSeen).length}
 function renderChat(){
-  chatwrap.hidden=!gid||!G;
+  chatwrap.hidden=!(gid&&G&&chatOpen);
   const atBottom=msgsEl.scrollHeight-msgsEl.scrollTop-msgsEl.clientHeight<40;
   msgsEl.innerHTML=chat.length?chat.map(m=>m.k==='s'?`<div class="stkline">${esc(m.u===me?'Tu':(m.n||'Giocatore'))} ha appiccicato «${esc(m.t)}» a ${esc(m.to===me?'te':((G&&G.names&&G.names[m.to])||'qualcuno'))}</div>`:`<div class="msg${m.u===me?' me':''}">${m.u===me?'':`<b>${esc(m.n||'Giocatore')}</b>`}${esc(m.t)}</div>`).join(''):'<p class="small mut">Nessun messaggio. Scrivi tu il primo!</p>';
   if(atBottom||chat.length&&chat[chat.length-1].u===me)msgsEl.scrollTop=msgsEl.scrollHeight;
   if(chatVisible)markSeen();
 }
 function markSeen(){const last=chat.length?chat[chat.length-1].ts:0;if(last>chatSeen){chatSeen=last;LS.set('cac-seen-'+gid,String(last));render()}}
-try{new IntersectionObserver(es=>{chatVisible=es[0].isIntersecting;if(chatVisible)markSeen()}).observe(document.getElementById('chatbox'))}catch(e){chatVisible=true}
+
 const QUICK=['Sei un inculato!!','Sì ma che sfiga!!','Ops','Che culo!','Bella presa!','Te l\'avevo detto','Ma dai!','Muoviti!','Rivincita?'];
 const quickEl=document.getElementById('quick');
+document.getElementById('chatclose').addEventListener('click',()=>{chatOpen=false;chatVisible=false;render();renderChat()});
+var chatShade=document.createElement('div');chatShade.className='shade';chatShade.hidden=true;document.body.appendChild(chatShade);chatShade.addEventListener('click',()=>{chatOpen=false;chatVisible=false;render();renderChat()});
 quickEl.innerHTML=QUICK.map((q,i)=>`<button type="button" data-q="${i}">${esc(q)}</button>`).join('');
 function sendChat(t){t=String(t).trim().slice(0,300);if(!t||!gid)return;addDoc(collection(fs,'games',gid,'chat'),{u:me,n:myName,t,ts:Date.now()}).catch(fail('Messaggio non inviato.'))}
 quickEl.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)sendChat(QUICK[+b.dataset.q])});
@@ -368,7 +410,7 @@ const STK=[['Sei inculato!','#e6392f'],['Che sfiga!','#7b3fd1'],['Pollo!','#f2b1
 let stkSeen=new Set(),stkTarget=null,stkLast=0;
 const stkLayer=document.createElement('div');stkLayer.className='stklayer';document.body.appendChild(stkLayer);
 function showSticker(m){
-  const box=document.querySelector(`.pl[data-id="${CSS.escape(m.to)}"]`);if(!box)return;
+  const box=document.querySelector(`.chip[data-id="${CSS.escape(m.to)}"]`);if(!box)return;
   const r=box.getBoundingClientRect(),st=STK.find(x=>x[0]===m.t)||[m.t,'#e6392f'];
   const el=document.createElement('div');el.className='sticker';el.textContent=m.t;el.style.background=st[1];
   el.style.left=(r.left+r.width/2+window.scrollX)+'px';el.style.top=(r.top+r.height/2+window.scrollY)+'px';
@@ -378,6 +420,7 @@ function showSticker(m){
   sfx('slap');if(m.to===me)try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}
   setTimeout(()=>el.remove(),2600);
 }
+function toast(m){const el=document.createElement('div');el.className='toast';const b=document.createElement('b');b.textContent=(m.n||'Giocatore')+': ';el.appendChild(b);el.appendChild(document.createTextNode(m.t));el.addEventListener('click',()=>{el.remove();chatOpen=true;chatVisible=true;render();renderChat();markSeen()});document.body.appendChild(el);setTimeout(()=>el.remove(),3500)}
 function sendSticker(i){
   if(!gid||!stkTarget||Date.now()-stkLast<1500)return;stkLast=Date.now();
   const to=stkTarget;stkTarget=null;render();
@@ -392,12 +435,12 @@ function watchChat(id){
   if(!id){renderChat();return}
   let first=true;chatUnsub=onSnapshot(query(collection(fs,'games',id,'chat'),orderBy('ts','desc'),limit(60)),s=>{const before=chat.filter(m=>m.k!=='s').slice(-1)[0];const bts=before?before.ts:0;chat=s.docs.map(d=>Object.assign({id:d.id},d.data())).reverse();
     for(const m of chat)if(m.k==='s'&&!stkSeen.has(m.id)){stkSeen.add(m.id);if(!first&&Date.now()-m.ts<6000)showSticker(m)}
-    const lastMsg=chat.filter(m=>m.k!=='s').slice(-1)[0];if(!first&&lastMsg&&lastMsg.ts>bts&&lastMsg.u!==me)sfx('chat');first=false;renderChat();render()},e=>{console.error(e);msgsEl.innerHTML='<p class="small mut">Chat non disponibile: vanno aggiornate le regole di Firestore.</p>'});
+    const lastMsg=chat.filter(m=>m.k!=='s').slice(-1)[0];if(!first&&lastMsg&&lastMsg.ts>bts&&lastMsg.u!==me){sfx('chat');if(!chatOpen)toast(lastMsg)}first=false;renderChat();render()},e=>{console.error(e);msgsEl.innerHTML='<p class="small mut">Chat non disponibile: vanno aggiornate le regole di Firestore.</p>'});
   renderChat();
 }
 function openGame(id){
   stopSubs();blindSubs.forEach(u=>u());blindSubs=[];hostSubs.forEach(u=>u());hostSubs=[];amHost=false;blindKey='';hk='';
-  stkTarget=null;
+  stkTarget=null;menuOpen=false;chatOpen=false;
   gid=id;G=null;moves={};myMove={};myHand=null;HANDS={};blindCards={};msg='';trickKey='';maxSel=null;
   try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch(e){}
   watchChat(id);
@@ -427,7 +470,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v12 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v13 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -455,7 +498,7 @@ function orderH(){
 function viewGame(){
   if(!G)return `<button data-act="back">← Partite</button><div class="panel"><p class="mut">${loading?'Caricamento…':'Partita non trovata.'}</p></div>`;
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
-  const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button><button data-act="sound" aria-pressed="${soundOn}">${soundOn?'Suono sì':'Suono no'}</button><button data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
+  const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button><button data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
   if(G.status==='lobby'){
     const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
     return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
@@ -464,49 +507,78 @@ function viewGame(){
     :inGame?`<p class="note">Aspetta che l'host inizi la partita.</p><button data-act="leave">Esci</button>`
     :`<div class="row" style="margin-top:12px"><button class="pri" data-act="join" data-x>Siediti al tavolo</button></div>`}</div>`;
   }
-  const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer];
-  const bar=G.status==='end'?'':`<div class="bar" style="margin-top:12px"><span>Mano <b>${G.h+1}</b> di ${G.seq.length}</span><span><b>${k}</b> ${k===1?'carta':'carte'}</span><span>Dà le carte: <b>${esc(nm(dealer))}</b></span></div>`;
-  const allBid=P.every(id=>G.bids&&G.bids[id]!=null)&&G.status!=='bid';
-  const pls=(inGame&&G.status!=='lobby'&&G.status!=='end'&&P.length>1?`<p class="small mut" style="margin:10px 0 -4px">Tocca un avversario per appiccicargli uno sticker.</p>`:'')+`<div class="players">${P.map(id=>{
-    const isOut=(G.left||[]).includes(id);const b=G.bids&&G.bids[id];const bidTxt=isOut?'è uscito · gioca il computer':G.status==='end'?'':G.status==='bid'?(b!=null?'ha dichiarato ✓':'sta pensando…'):`dichiara ${b} · prese ${G.taken[id]||0}`;
-    const bc=G.status==='handEnd'?(G.blindCards||{})[id]:blindCards[id];const blindCard=G.blind&&(id!==me||G.status==='handEnd')?`<div style="margin-top:6px">${(()=>{const k=key(G);const A=G.status==='handEnd'&&id===me?anC('f'+k,'flip',600):anC('d'+k+id,'deal',450,G.players.indexOf(id)*120);return cardH(bc,A.c+(G.blindWinner===id?' winc':''),'',A.s)})()}</div>`:(G.blind&&id===me?`<div style="margin-top:6px">${(()=>{const A=anC('d'+key(G)+id,'deal',450,G.players.indexOf(id)*120);return cardH(null,A.c,'',A.s)})()}</div>`:'');
-    const posI=['bid','play','trick'].includes(G.status)&&!G.blind?order().indexOf(id):-1;
-    const kick=host&&id!==me&&!isOut&&!['end','lobby'].includes(G.status)?`<div style="margin-top:6px">${cBtn('kick',id,'Togli','Sicuro? Togli','style="min-height:34px;padding:0 10px;font-size:13px"')}</div>`:'';
-    return `<div class="pl ${G.status==='play'&&G.turn===id?'turn':''}${isOut?' out':''}${inGame&&id!==me&&G.status!=='lobby'?' tappable':''}" data-id="${esc(id)}" ${inGame&&id!==me&&G.status!=='lobby'?`data-act="stkto" role="button" tabindex="0" aria-label="Appiccica uno sticker a ${esc(nm(id))}"`:''} style="animation-delay:-${Math.round(performance.now()%1600)}ms"><div class="n">${posI>=0?`<span class="tag pos">${posI+1}°</span> `:''}${esc(nm(id))}${id===dealer&&G.status!=='end'?'<span class="tag">mazziere</span>':''}</div><div class="s">${bidTxt}</div><div class="s">Punti <b style="color:var(--ink)">${G.scores[id]||0}</b></div>${blindCard}${kick}</div>`}).join('')}</div>`;
-  let center='';
-  const showTrick=(G.status==='trick'||G.status==='handEnd')&&!G.blind?(G.status==='trick'?G.trick:G.lastTrick||[]):G.trick||[];
+  const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer],iLeft=(G.left||[]).includes(me);
+  const SPK=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>${soundOn?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
+  const head=`<header class="gtop"><button class="ib" data-act="back" aria-label="Torna alle partite">←</button>
+    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))}</small></div>
+    <button class="ib" data-act="sound" aria-label="${soundOn?'Spegni audio':'Accendi audio'}" aria-pressed="${soundOn}">${SPK}</button>
+    <button class="ib wide" data-act="chat">Chat${unread()?`<span class="badge">${unread()}</span>`:''}</button>
+    <button class="ib" data-act="menu" aria-label="Menu">⋯</button></header>`;
+  // giocatori in ordine di giro
+  const O=['bid','play','trick'].includes(G.status)&&!G.blind?order():P;
+  const played=new Set((G.trick||[]).map(x=>x.p));
+  const chips=`<div class="gpl ${G.blind?'blind':''}">${O.map((id,i)=>{
+    const isOut=(G.left||[]).includes(id),b=G.bids&&G.bids[id],tap=inGame&&id!==me&&G.status!=='end';
+    const line=isOut?'uscito':G.status==='end'?'':G.status==='bid'?(b!=null?'pronto ✓':'pensa…'):`${b} dich · ${G.taken[id]||0} prese`;
+    const pos=O===P?'':`<span class="pos">${i+1}°</span>`;
+    let card='';
+    if(G.blind){const bc=G.status==='handEnd'?(G.blindCards||{})[id]:blindCards[id];
+      const A=G.status==='handEnd'&&id===me?anC('f'+key(G),'flip',600):anC('d'+key(G)+id,'deal',450,P.indexOf(id)*120);
+      card=`<div class="mini">${cardH(id===me&&G.status!=='handEnd'?null:bc,A.c+(G.blindWinner===id?' winc':''),'',A.s)}</div>`}
+    const cls=[G.status==='play'&&G.turn===id?'turn':'',G.status==='play'&&played.has(id)?'done':'',isOut?'out':'',tap?'tappable':'',id===me?'mine':''].join(' ');
+    return `<div class="chip ${cls}" data-id="${esc(id)}" ${tap?`data-act="stkto" role="button" tabindex="0" aria-label="Sticker a ${esc(nm(id))}"`:''} style="animation-delay:-${Math.round(performance.now()%1600)}ms">
+      <div class="cn">${pos}<span class="nm">${esc(nm(id))}</span><span class="sc">${G.scores[id]||0}</span></div>
+      ${line||id===dealer?`<div class="cl">${id===dealer&&G.status!=='end'?'<i class="dl" title="mazziere">M</i> ':''}${line}</div>`:''}${card}</div>`}).join('')}</div>`;
+  // centro tavolo
   const trickH=t=>{const tk=key(G)+'-'+G.trickNo;const C=G.status==='trick'?anC('c'+tk,'collect',700,1000):{c:'',s:''};return `<div class="trick ${C.c}" style="${C.s}">${t.map(x=>{const A=anC('t'+tk+x.p+x.c,x.p===me?'fly-up':'fly-down',380);return `<div class="slot ${(G.status==='trick'||G.status==='handEnd')&&x.p===G.winner?'win':''}">${cardH(x.c,A.c,'',A.s)}<span>${esc(nm(x.p))}</span></div>`}).join('')}</div>`};
+  let center='';
   if(G.status==='bid'){
     const mine=myMove.bid&&myMove.bid.h===G.h&&myMove.bid.r===G.r?myMove.bid.v:null;
-    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`:`<div class="big">Dichiarazioni</div><p class="mut">Quante prese farai? Tutti dichiarano insieme, i numeri si vedono quando hanno finito tutti.</p><p>Apre <b>${esc(nm(order()[0]))}</b>${inGame&&order().indexOf(me)>=0?` · tu sei <b>${order().indexOf(me)+1}°</b> di ${P.length}`:''}</p>`;
-    if(inGame)center+=mine==null?`<div class="bids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}" data-x>${i}</button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. In attesa degli altri…</p>`;
+    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut sm">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`
+      :`<div class="big">Quante prese farai?</div><p class="mut sm">Apre ${esc(nm(order()[0]))}${inGame&&order().indexOf(me)>=0?` · tu sei ${order().indexOf(me)+1}° di ${P.length}`:''}</p>`;
+    if(inGame&&!iLeft)center+=mine==null?`<div class="bids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}">${i}</button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. Aspetto gli altri…</p>`;
+    center+=`<p class="tip">Tocca un avversario per appiccicargli uno sticker</p>`;
   }else if(G.status==='play'){
     center=G.trick.length?trickH(G.trick):`<div class="big">Presa ${G.trickNo+1} di ${k}</div>`;
-    const myPos=order().indexOf(me);center+=`<p class="${G.turn===me?'':'mut'}">${G.turn===me?'<b>Tocca a te</b>: gioca una carta':'Tocca a '+esc(nm(G.turn))}${inGame&&myPos>=0?` · in questo giro sei <b>${myPos+1}°</b> di ${P.length}`:''}</p>`;
+    const myPos=order().indexOf(me);
+    center+=`<p class="${G.turn===me?'yt':'mut sm'}">${G.turn===me?'Tocca a te!':'Tocca a '+esc(nm(G.turn))}${inGame&&myPos>=0&&G.turn!==me?` · tu sei ${myPos+1}°`:''}</p>`;
   }else if(G.status==='trick'){
     center=trickH(G.trick)+`<p>Prende <b>${esc(nm(G.winner))}</b></p>`;
   }else if(G.status==='handEnd'){
     const last=G.history[G.history.length-1];
-    center=(G.blind?`<p>Carta più alta: <b>${esc(nm(G.blindWinner))}</b></p>`:(showTrick.length?trickH(showTrick):''))+`<div class="scroll" style="width:100%"><table><thead><tr><th>Giocatore</th><th>Dichiarate</th><th>Fatte</th><th>Punti</th></tr></thead><tbody>${P.map((id,i)=>{const r=last.rows[id];const A=an('r'+key(G)+id,400,200+i*90);return `<tr class="${A?'rowin':''}" style="${A||''}"><td>${esc(nm(id))}</td><td>${r.b}</td><td>${r.t}</td><td class="${r.pt>0?'pos':r.pt<0?'neg':''}">${sign(r.pt)}</td></tr>`}).join('')}</tbody></table></div>`
-      +(host?`<button class="pri" data-act="next">${G.h+1>=G.seq.length?'Vedi la classifica':'Prossima mano'}</button>`:`<p class="mut small">L'host avvia la prossima mano.</p>`);
+    center=(G.blind?`<p>Carta più alta: <b>${esc(nm(G.blindWinner))}</b></p>`:'')+`<table class="tight"><thead><tr><th></th><th>Dich.</th><th>Fatte</th><th>Punti</th><th>Tot.</th></tr></thead><tbody>${P.map((id,i)=>{const r=last.rows[id];const A=an('r'+key(G)+id,400,200+i*90);return `<tr class="${A?'rowin':''}" style="${A||''}"><td>${esc(nm(id))}</td><td>${r.b}</td><td>${r.t}</td><td class="${r.pt>0?'pos':r.pt<0?'neg':''}">${sign(r.pt)}</td><td><b>${G.scores[id]}</b></td></tr>`}).join('')}</tbody></table>`
+      +(host?`<button class="pri" data-act="next">${G.h+1>=G.seq.length?'Vedi la classifica':'Prossima mano'}</button>`:`<p class="mut sm">L'host avvia la prossima mano.</p>`);
   }else if(G.status==='end'){
     const rank=[...P].sort((a,b)=>G.scores[b]-G.scores[a]);
-    center=`<div class="big">Vince ${esc(nm(rank[0]))}</div><div class="scroll" style="width:100%"><table><tbody>${rank.map((id,i)=>`<tr><td>${i+1}. ${esc(nm(id))}</td><td><b>${G.scores[id]}</b></td></tr>`).join('')}${(G.out||[]).map(id=>`<tr class="mut"><td>${esc(nm(id))} (uscito)</td><td>${G.scores[id]||0}</td></tr>`).join('')}</tbody></table></div>${host?`<button class="pri" data-act="again">Rivincita</button>`:''}`;
+    center=`<div class="big">Vince ${esc(nm(rank[0]))}</div><table class="tight"><tbody>${rank.map((id,i)=>`<tr><td>${i+1}. ${esc(nm(id))}</td><td><b>${G.scores[id]}</b></td></tr>`).join('')}${(G.out||[]).map(id=>`<tr class="mut"><td>${esc(nm(id))} (uscito)</td><td>${G.scores[id]||0}</td></tr>`).join('')}</tbody></table>${host?`<button class="pri" data-act="again">Rivincita</button>`:''}`;
   }
+  // mano
   let handH='';
   const mh=myHand&&myHand.k===key(G)?myHand.cards:null;
-  if(inGame&&!G.blind&&mh&&['bid','play','trick'].includes(G.status)){
+  if(inGame&&!G.blind&&mh&&mh.length&&['bid','play','trick'].includes(G.status)){
     const can=G.status==='play'&&G.turn===me&&!(myMove.play&&myMove.play.r===G.r&&myMove.play.h===G.h&&myMove.play.t===G.trickNo);
-    handH=`<div class="panel" style="padding:12px"><div class="small mut">La tua mano</div><div class="hand">${sortHand(mh).map((c,i)=>{const A=anC('d'+key(G)+'-'+c,'deal',450,i*70);return cardH(c,(can?'play ':'')+A.c,can?`data-act="play" data-c="${esc(c)}"`:'',A.s)}).join('')}</div></div>`;
-  }
-  if(!inGame&&G.status!=='end')handH=`<p class="note">Stai guardando la partita: le carte dei giocatori restano nascoste.</p>`;
-  const hist=G.history&&G.history.length?`<details class="panel"><summary>Punteggio mano per mano</summary><div class="scroll"><table><thead><tr><th>Mano</th>${P.map(id=>`<th>${esc(nm(id))}</th>`).join('')}</tr></thead><tbody>${G.history.map((r,i)=>`<tr><td>${i+1} (${r.c})</td>${P.map(id=>{const x=r.rows[id];return `<td class="${x.pt>0?'pos':x.pt<0?'neg':''}">${x.b}/${x.t} ${sign(x.pt)}</td>`}).join('')}</tr>`).join('')}<tr><td><b>Totale</b></td>${P.map(id=>`<td><b>${G.scores[id]}</b></td>`).join('')}</tr></tbody></table></div><p class="note">Ogni cella: dichiarate/fatte e punti.</p></details>`:'';
-  const iLeft=(G.left||[]).includes(me);
-  const leaveH=inGame&&!iLeft&&!['lobby','end'].includes(G.status)?`<div class="row" style="margin-top:16px">${cBtn('quit',gid,'Esci dalla partita','Sicuro? Esci')}<span class="small mut">La mano in corso la finisce il computer per te, poi gli altri continuano senza di te.</span></div>`:'';
-  const take=inGame&&!host&&!iLeft&&G.status!=='end'?`<details class="note"><summary>La partita è ferma?</summary><p>La partita avanza solo mentre l'host ha la pagina aperta. Se l'host è uscito, puoi prendere il suo posto.</p><button data-act="takeover">Diventa host</button></details>`:'';
-  return top+bar+pls+stkPicker()+orderH()+`<div class="table">${center}</div>`+handH+hist+take+leaveH;
+    const n=mh.length,W=Math.min(window.innerWidth-24,736),cw=window.innerWidth<600?60:72,gap=n>1?Math.min(6,(W-n*cw)/(n-1)):0;
+    handH=`<div class="ghand ${can?'can':''}" style="--ov:${gap.toFixed(1)}px">${sortHand(mh).map((c,i)=>{const A=anC('d'+key(G)+'-'+c,'deal',450,i*70);return cardH(c,(can?'play ':'')+A.c,can?`data-act="play" data-c="${esc(c)}"`:'',A.s)}).join('')}</div>`;
+  }else if(!inGame&&G.status!=='end')handH=`<p class="note" style="text-align:center">Stai guardando: le carte restano nascoste.</p>`;
+  return `<div class="g">${head}${chips}<div class="gtable">${center}</div>${handH}</div>${sheets(P,inGame,host,iLeft)}`;
 }
-
+let menuOpen=false,chatOpen=false;
+function sheets(P,inGame,host,iLeft){
+  let h='';
+  if(stkTarget)h+=`<div class="shade" data-act="stkno"></div><div class="sheet">${stkPicker()}</div>`;
+  if(menuOpen){
+    const hist=G.history&&G.history.length?`<h2>Punteggio mano per mano</h2><div class="scroll"><table class="tight"><thead><tr><th>Mano</th>${P.map(id=>`<th>${esc(nm(id))}</th>`).join('')}</tr></thead><tbody>${G.history.map((r,i)=>`<tr><td>${i+1} (${r.c})</td>${P.map(id=>{const x=r.rows[id];return x?`<td class="${x.pt>0?'pos':x.pt<0?'neg':''}">${x.b}/${x.t} ${sign(x.pt)}</td>`:'<td>–</td>'}).join('')}</tr>`).join('')}<tr><td><b>Totale</b></td>${P.map(id=>`<td><b>${G.scores[id]}</b></td>`).join('')}</tr></tbody></table></div><p class="note">Ogni cella: dichiarate/fatte e punti.</p>`:'';
+    const kicks=host&&!['end','lobby'].includes(G.status)?P.filter(id=>id!==me&&!(G.left||[]).includes(id)).map(id=>`<div class="item"><span>${esc(nm(id))}</span>${cBtn('kick',id,'Togli','Sicuro? Togli')}</div>`).join(''):'';
+    h+=`<div class="shade" data-act="menu"></div><div class="sheet"><div class="row sp"><h2 style="margin:0">Menu</h2><button data-act="menu">Chiudi</button></div>
+      ${hist}
+      ${kicks?`<h2 style="margin-top:14px">Togli un giocatore sparito</h2><div class="list">${kicks}</div>`:''}
+      <div class="list" style="margin-top:14px">
+      ${inGame&&!host&&!iLeft&&G.status!=='end'?`<div class="item"><span class="small">La partita è ferma? Avanza solo con l'host collegato.</span><button data-act="takeover">Diventa host</button></div>`:''}
+      ${inGame&&!iLeft&&!['lobby','end'].includes(G.status)?`<div class="item"><span class="small">La mano in corso la finisce il computer per te.</span>${cBtn('quit',gid,'Esci dalla partita','Sicuro? Esci')}</div>`:''}
+      ${host?`<div class="item"><span class="small">Cancella la partita per tutti.</span>${delBtn(gid)}</div>`:''}</div></div>`;
+  }
+  return h;
+}
 /* ---------- statistiche ---------- */
 let view='lobby',ST=null,stLoading=false;
 const nkey=n=>String(n||'').trim().toLowerCase();
@@ -569,7 +641,9 @@ function render(){
   else h=gid?viewGame():view==='stats'?viewStats():viewLobby();
   if(msg)h=`<div class="err" role="alert">${esc(msg)}</div>`+h;
   app.innerHTML=h;
-  chatwrap.hidden=!gid||!G;
+  if(typeof chatShade!=='undefined')chatShade.hidden=!(gid&&G&&chatOpen);
+  const fit=!!(gid&&G&&G.status!=='lobby'&&view!=='stats');document.body.classList.toggle('fit',fit);
+  chatwrap.hidden=!(gid&&G&&chatOpen);
   if(fid){const el=document.getElementById(fid);if(el)el.focus()}
 }
 
@@ -581,7 +655,7 @@ app.addEventListener('click',e=>{
   if(a==='name'){const v=(document.getElementById('nick').value||'').trim().slice(0,20);if(!v){msg='Scrivi un nome.';return render()}myName=v;LS.set('cac-name',v);return render()}
   if(a==='rename'){myName='';return render()}
   const sure=k=>{if(confirmDel!==k){confirmDel=k;render();setTimeout(()=>{if(confirmDel===k){confirmDel=null;render()}},4000);return false}confirmDel=null;return true};
-  if(a==='stkto'){stkTarget=stkTarget===b.dataset.id?null:b.dataset.id;return render()}
+  if(a==='stkto'){stkTarget=stkTarget===b.dataset.id?null:b.dataset.id;chatOpen=false;menuOpen=false;return render()}
   if(a==='stkno'){stkTarget=null;return render()}
   if(a==='stk')return sendSticker(+b.dataset.i);
   if(a==='quit'){if(!G||!sure('quit:'+gid))return;
@@ -591,7 +665,8 @@ app.addEventListener('click',e=>{
   if(a==='del'){const id=b.dataset.id;if(confirmDel!==id){confirmDel=id;render();setTimeout(()=>{if(confirmDel===id){confirmDel=null;render()}},4000);return}
     confirmDel=null;if(gid===id)openGame(null);deleteDoc(doc(fs,'games',id)).catch(fail('Non riesco a eliminare la partita.'));return}
   if(a==='sound'){soundOn=!soundOn;LS.set('cac-sound',soundOn?'1':'0');ac();render();if(soundOn)setTimeout(()=>sfx('play'),50);return}
-  if(a==='chat'){document.getElementById('chatbox').scrollIntoView({behavior:'smooth'});setTimeout(()=>chatin.focus({preventScroll:true}),400);return}
+  if(a==='chat'){chatOpen=!chatOpen;menuOpen=false;stkTarget=null;chatVisible=chatOpen;render();renderChat();if(chatOpen){markSeen();msgsEl.scrollTop=msgsEl.scrollHeight}return}
+  if(a==='menu'){menuOpen=!menuOpen;chatOpen=false;stkTarget=null;return render()}
   if(a==='new')return newGame();
   if(a==='open')return openGame(b.dataset.id);
   if(a==='back'){view='lobby';return openGame(null)}
