@@ -454,7 +454,7 @@ function renderChat(){
 }
 function markSeen(){const last=chat.length?chat[chat.length-1].ts:0;if(last>chatSeen){chatSeen=last;LS.set('cac-seen-'+gid,String(last));render()}}
 
-const QUICK=['Sei un inculato!!','Sì ma che sfiga!!','Ops','Che culo!','Bella presa!','Te l\'avevo detto','Ma dai!','Muoviti!','Rivincita?'];
+const QUICK=['Sei un inculato!!','Sì ma che sfiga!!','Ops','Che culo!','Bella presa!','Te l\'avevo detto','Ma dai!','Muoviti!','Rivincita?','Classic Corby','Ziopera!','Ziocane!','Ziodonperignon!'];
 const quickEl=document.getElementById('quick');
 
 quickEl.innerHTML=QUICK.map((q,i)=>`<button type="button" data-q="${i}">${esc(q)}</button>`).join('');
@@ -463,7 +463,7 @@ quickEl.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)s
 document.getElementById('chatf').addEventListener('submit',e=>{
   e.preventDefault();const t=chatin.value;chatin.value='';sendChat(t);
 });
-const STK=[['Sei inculato!','#e6392f'],['Che sfiga!','#7b3fd1'],['Pollo!','#f2b134'],['Pirla!','#1f8fe0'],['Ciapa!','#e6392f'],['Dormi?','#2a9d6f'],['Bluff!','#111'],['Sei cotto!','#f07b22'],['Grande!','#2a9d6f']];
+const STK=[['Sei inculato!','#e6392f'],['Che sfiga!','#7b3fd1'],['Pollo!','#f2b134'],['Pirla!','#1f8fe0'],['Ciapa!','#e6392f'],['Dormi?','#2a9d6f'],['Bluff!','#111'],['Sei cotto!','#f07b22'],['Grande!','#2a9d6f'],['Classic Corby','#0f4c81'],['Ziopera!','#b5179e'],['Ziocane!','#6a040f'],['Ziodonperignon!','#1b1b1b']];
 let stkSeen=new Set(),stkTarget=null,stkLast=0;
 const stkLayer=document.createElement('div');stkLayer.className='stklayer';document.body.appendChild(stkLayer);
 function showSticker(m){
@@ -527,7 +527,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v16 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v17 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
