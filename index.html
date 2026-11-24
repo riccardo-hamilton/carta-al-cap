@@ -162,7 +162,7 @@ function cardH(c,cls='',attr=''){
 }
 const sortHand=h=>[...h].sort((a,b)=>rk(b)-rk(a)||'SHDC'.indexOf(st(a))-'SHDC'.indexOf(st(b)));
 const sign=n=>n>0?'+'+n:String(n);
-const fail=t=>e=>{console.error(e);msg=t;render()};
+const fail=t=>e=>{console.error(e);msg=t+' ['+((e&&(e.code||e.message))||'errore')+']';render()};
 
 /* ---------- scritture ---------- */
 let gq=Promise.resolve();
@@ -239,7 +239,9 @@ function openGame(id){
 function newGame(){
   const id='g'+Date.now().toString(36)+rnd(1e6).toString(36);
   const g={host:me,players:[me],names:{[me]:myName},status:'lobby',created:Date.now()};
-  setDoc(doc(fs,'games',id),g).then(()=>{openGame(id);writeMove({join:true})}).catch(fail('Non riesco a creare la partita.'));
+  msg='Creo la partita…';render();
+  const to=setTimeout(()=>{msg='Firebase non risponde: la partita non è ancora salvata. [timeout]';render()},12000);
+  setDoc(doc(fs,'games',id),g).then(()=>{clearTimeout(to);msg='';openGame(id);writeMove({join:true})}).catch(e=>{clearTimeout(to);fail('Non riesco a creare la partita.')(e)});
 }
 function viewLobby(){
   const open=games.filter(g=>g.status==='lobby');
@@ -247,7 +249,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><button data-act="open" data-id="${esc(g.id)}">${label}</button></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
+  <p class="small mut">v2 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -348,7 +350,7 @@ function viewName(){return `<h1>Carta al Cap</h1><p class="mut">Scommetti su qua
 <form class="panel"><h2>Come ti chiami?</h2><p class="small mut">Il nome che vedranno gli altri al tavolo.</p><div class="row"><input id="nick" maxlength="20" autocomplete="nickname" value="${esc(myName)}" style="font:16px Inter;min-height:44px;border-radius:10px;border:0;padding:0 12px;flex:1 1 180px"><button class="pri" type="button" data-act="name">Entra</button></div></form>${rulesH()}`}
 
 onAuthStateChanged(auth,u=>{
-  if(!u){signInAnonymously(auth).catch(e=>{console.error(e);loading=false;msg='Accesso anonimo non riuscito: è attivo su Firebase?';render()});return}
+  if(!u){signInAnonymously(auth).catch(e=>{console.error(e);loading=false;msg='Accesso anonimo non riuscito ['+(e&&e.code)+']';render()});return}
   me=u.uid;loading=false;
   if(!gamesUnsub)gamesUnsub=onSnapshot(query(collection(fs,'games'),orderBy('created','desc'),limit(40)),s=>{games=s.docs.map(d=>Object.assign({id:d.id},d.data()));if(!gid)render()},fail('Non riesco a leggere le partite: controlla le regole di Firestore.'));
   const h=(location.hash||'').slice(1);
