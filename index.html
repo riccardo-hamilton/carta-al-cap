@@ -249,6 +249,8 @@ const rnd=n=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[
 function newDeck(){const d=[];for(const s of 'HDCS')for(let r=2;r<=14;r++)d.push(r+s);for(let i=d.length-1;i>0;i--){const j=rnd(i+1);[d[i],d[j]]=[d[j],d[i]]}return d}
 function rot(arr,k){const n=arr.length;return arr.map((_,i)=>arr[(i+k)%n])}
 function maxFor(n){return Math.floor(52/n)}
+function maxPick(n){return Math.max(1,maxFor(n)-1)}
+function maxDefault(n){return Math.max(1,maxFor(n)-2)}
 function deal(g,h){
   const n=g.players.length;
   g.h=h;g.trick=[];g.winner=null;g.blindWinner=null;g.lastTrick=[];
@@ -529,14 +531,14 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v19 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v20 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
   ${rulesH()}`;
 }
 function rulesH(){return `<details class="panel"><summary>Regole</summary>
-<p>Si gioca con un mazzo da 52 carte. Le mani salgono da 1 carta fino al massimo che il mazzo permette (52 ÷ giocatori), poi scendono di nuovo fino a 1.</p>
+<p>Si gioca con un mazzo da 52 carte. Le mani salgono da 1 carta fino a un massimo scelto dall'host, poi scendono di nuovo fino a 1. Il massimo resta sempre sotto quello che il mazzo permetterebbe, così qualche carta rimane fuori e non si sa con certezza quali sono in gioco.</p>
 <p><b>Prima mano:</b> una carta a testa, che vedi solo sugli altri. Dichiari 1 se pensi di avere la più alta, 0 se no. A parità vince il giocatore più vicino al mazziere in senso orario.</p>
 <p><b>Mani successive:</b> guardi le tue carte e tutti dichiarano insieme quante prese faranno. Apre chi siede dopo il mazziere, poi apre chi ha vinto l'ultima presa. Vince la carta più alta (A, K, Q, J, 10…2); a parità vince quella giocata prima.</p>
 <p><b>Punti:</b> se fai esattamente le prese dichiarate guadagni quel numero (0 = 0 punti). Se sbagli perdi la differenza tra dichiarate e fatte.</p></details>`}
@@ -562,9 +564,9 @@ function viewGame(){
   const P=G.players||[],inGame=P.includes(me),host=G.host===me;
   const top=`<div class="row sp"><div class="row"><button data-act="back">← Partite</button></div><div class="row"><span class="small mut">Host: ${esc(nm(G.host))}</span>${host?delBtn(gid):''}</div></div>`;
   if(G.status==='lobby'){
-    const n=P.length,mx=maxFor(Math.max(n,2));const sel=Math.min(maxSel||mx,mx);
+    const n=P.length,mx=maxPick(Math.max(n,2));const sel=Math.min(maxSel||maxDefault(Math.max(n,2)),mx);
     return top+`<h1>In attesa</h1><div class="panel"><h2>Al tavolo (${n})</h2><div class="list">${P.map(id=>`<div class="item"><span>${esc(nm(id))}${id===G.host?'<span class="tag">host</span>':''}</span></div>`).join('')}</div>
-    ${host?`<div class="row" style="margin-top:14px"><label for="mx">Carte massime</label><select id="mx">${Array.from({length:mx},(_,i)=>i+1).map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('')}</select><span class="small mut">${2*sel-1} mani</span></div>
+    ${host?`<div class="row" style="margin-top:14px"><label for="mx">Carte massime</label><select id="mx">${Array.from({length:mx},(_,i)=>i+1).map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('')}</select><span class="small mut">${2*sel-1} mani · nella mano più lunga restano ${52-sel*Math.max(n,2)} carte nel mazzo</span></div>
       <div class="row" style="margin-top:12px"><button class="pri" data-act="start" ${n<2?'disabled':''}>Inizia la partita</button></div>${n<2?'<p class="note">Servono almeno 2 giocatori: gli amici aprono questa pagina e toccano “Entra”.</p>':''}`
     :inGame?`<p class="note">Aspetta che l'host inizi la partita.</p><button data-act="leave">Esci</button>`
     :`<div class="row" style="margin-top:12px"><button class="pri" data-act="join" data-x>Siediti al tavolo</button></div>`}</div>`;
@@ -572,7 +574,7 @@ function viewGame(){
   const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer],iLeft=(G.left||[]).includes(me);
   const SPK=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>${soundOn?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
   const head=`<header class="gtop"><button class="ib" data-act="back" aria-label="Torna alle partite">←</button>
-    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v19</small></div>
+    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v20</small></div>
     <button class="ib" data-act="sound" aria-label="${soundOn?'Spegni audio':'Accendi audio'}" aria-pressed="${soundOn}">${SPK}</button>
     <button class="ib" data-act="menu" aria-label="Menu">⋯</button></header>`;
   // giocatori in ordine di giro
@@ -739,7 +741,7 @@ app.addEventListener('click',e=>{
   if(a==='bid')return writeMove({join:true,bid:{r:G.r,h:G.h,v:parseInt(b.dataset.v,10)}});
   if(a==='play')return writeMove({join:true,play:{r:G.r,h:G.h,t:G.trickNo,c:b.dataset.c}});
   if(!G)return;
-  if(a==='start'&&G.host===me){const mx=maxFor(G.players.length);return saveG(start(full(),Math.min(maxSel||mx,mx)),true)}
+  if(a==='start'&&G.host===me){const n=G.players.length,mx=maxPick(n);return saveG(start(full(),Math.min(maxSel||maxDefault(n),mx)),true)}
   if(a==='next'&&G.host===me)return saveG(deal(full(),G.h+1),true);
   if(a==='again'&&G.host===me)return saveG(start(full(),(G.seq.length+1)/2),true);
   if(a==='takeover'){updateDoc(doc(fs,'games',gid),{host:me}).catch(fail('Non riesco a prendere il controllo.'));return}
