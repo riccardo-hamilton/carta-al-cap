@@ -259,7 +259,7 @@ function deal(g,h){
   const k=g.seq[h],d=newDeck();
   g.dealer=h%n;g.hands={};g.bids={};g.taken={};
   g.players.forEach((id,i)=>{g.hands[id]=d.slice(i*k,i*k+k);g.taken[id]=0});
-  g.blind=h===0;g.trickNo=0;g.turn=null;g.status='bid';
+  g.blind=(h===0||h===g.seq.length-1)&&k===1;g.trickNo=0;g.turn=null;g.status='bid';
   return g;
 }
 function start(g,max){
@@ -374,7 +374,7 @@ function saveG(n,dealt){
   gq=gq.then(async()=>{
     const b=writeBatch(fs);
     if(n.hands)for(const p of n.players){
-      if(dealt||JSON.stringify(prevHands[p])!==JSON.stringify(n.hands[p]))b.set(doc(fs,'games',id,'hands',p),{cards:n.hands[p],k});
+      if(dealt||JSON.stringify(prevHands[p])!==JSON.stringify(n.hands[p]))b.set(doc(fs,'games',id,'hands',p),{cards:n.blind&&p!==me?[]:n.hands[p],k});
       if(dealt&&n.blind)b.set(doc(fs,'games',id,'blind',p),{card:n.hands[p][0],k});
     }
     b.set(doc(fs,'games',id),pub);
@@ -390,7 +390,8 @@ function writeMove(patch){
 function full(){return Object.assign(clone(G),{hands:clone(HANDS)})}
 function hostStep(){
   if(!G||G.host!==me)return;
-  if(G.status!=='lobby'&&G.status!=='end'&&!(G.players||[]).every(p=>HANDS[p]))return; // mani non ancora caricate
+  if(G.blind)for(const p of G.players||[])if(p!==me&&!(HANDS[p]&&HANDS[p].length)&&blindCards[p])HANDS[p]=[blindCards[p]];
+  if(G.status!=='lobby'&&G.status!=='end'&&!(G.players||[]).every(p=>HANDS[p]&&(HANDS[p].length||!G.blind)||G.status==='handEnd'))return; // mani non ancora caricate
   const cur=full(),before=JSON.stringify(cur);
   const n=advance(clone(cur),moves);
   if(G.status==='lobby'){n.names=n.names||{};for(const p of n.players)if(moves[p]&&moves[p].name)n.names[p]=String(moves[p].name).slice(0,20)}
@@ -407,7 +408,7 @@ let blindSubs=[];
 function watchBlind(){
   blindSubs.forEach(u=>u());blindSubs=[];blindCards={};
   if(!G||!G.blind||G.status==='lobby')return;
-  for(const p of G.players)if(p!==me)blindSubs.push(onSnapshot(doc(fs,'games',gid,'blind',p),s=>{const d=s.data();blindCards[p]=d&&d.k===key(G)?d.card:null;render()},()=>{}));
+  for(const p of G.players)if(p!==me)blindSubs.push(onSnapshot(doc(fs,'games',gid,'blind',p),s=>{const d=s.data();blindCards[p]=d&&d.k===key(G)?d.card:null;hostStep();render()},()=>{}));
 }
 let hostSubs=[],amHost=false,blindKey='',hk='';
 function watchHost(){
@@ -416,7 +417,7 @@ function watchHost(){
   if(!h)return;
   hostSubs.push(onSnapshot(collection(fs,'games',gid,'moves'),s=>{moves={};s.docs.forEach(d=>moves[d.id]=d.data());hostStep()},()=>{}));
   hostSubs.push(onSnapshot(collection(fs,'games',gid,'hands'),s=>{
-    s.docs.forEach(d=>{const x=d.data();if(G&&x.k===key(G))HANDS[d.id]=x.cards});hostStep()},()=>{}));
+    s.docs.forEach(d=>{const x=d.data();if(G&&x.k===key(G)&&(x.cards.length||!G.blind))HANDS[d.id]=x.cards});hostStep()},()=>{}));
 }
 /* ---------- suoni ---------- */
 let AC=null,soundOn=LS.get('cac-sound')!=='0';
@@ -533,7 +534,7 @@ function viewLobby(){
   const ended=games.filter(g=>g.status==='end'&&(g.players||[]).includes(me)).slice(0,5);
   const item=(g,label)=>`<div class="item"><div><b>Partita di ${esc(g.host===me?'te':((g.names&&g.names[g.host])||'un amico'))}</b><div class="small mut">${(g.players||[]).length} giocatori${g.seq?' · mano '+(Math.min(g.h+1,g.seq.length))+' di '+g.seq.length:''}</div></div><div class="row" style="flex:none">${g.host===me?delBtn(g.id,true):''}<button data-act="open" data-id="${esc(g.id)}">${label}</button></div></div>`;
   return `<h1>Carta al Cap</h1><p class="mut">Scommetti su quante prese farai. Asso alto, i semi non contano, a parità vince chi ha giocato prima.</p>
-  <p class="small mut">v21 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
+  <p class="small mut">v22 · Giochi come <b>${esc(myName)}</b> · <button data-act="rename" style="min-height:32px;padding:0 10px">cambia nome</button></p><div class="row" style="margin:14px 0"><button class="pri" data-act="new" data-x>Crea una partita</button><button data-act="stats">Statistiche</button></div>
   ${mine.length?`<div class="panel"><h2>Le tue partite in corso</h2><div class="list">${mine.map(g=>item(g,'Riprendi')).join('')}</div></div>`:''}
   <div class="panel"><h2>Partite in attesa di giocatori</h2>${open.length?`<div class="list">${open.map(g=>item(g,(g.players||[]).includes(me)?'Apri':'Entra')).join('')}</div>`:`<p class="mut">Nessuna partita aperta. Creane una e manda agli amici il link di questa pagina.</p>`}</div>
   ${ended.length?`<div class="panel"><h2>Finite di recente</h2><div class="list">${ended.map(g=>item(g,'Vedi')).join('')}</div></div>`:''}
@@ -541,7 +542,7 @@ function viewLobby(){
 }
 function rulesH(){return `<details class="panel"><summary>Regole</summary>
 <p>Si gioca con un mazzo da 52 carte. Le mani salgono da 1 carta fino a un massimo scelto dall'host, poi scendono di nuovo fino a 1. Il massimo resta sempre sotto quello che il mazzo permetterebbe, così qualche carta rimane fuori e non si sa con certezza quali sono in gioco.</p>
-<p><b>Prima mano:</b> una carta a testa, che vedi solo sugli altri. Dichiari 1 se pensi di avere la più alta, 0 se no. A parità vince il giocatore più vicino al mazziere in senso orario.</p>
+<p><b>Prima e ultima mano:</b> una carta a testa, che vedi solo sugli altri. Dichiari 1 se pensi di avere la più alta, 0 se no. A parità vince il giocatore più vicino al mazziere in senso orario.</p>
 <p><b>Mani successive:</b> guardi le tue carte e tutti dichiarano insieme quante prese faranno. Apre chi siede dopo il mazziere, poi apre chi ha vinto l'ultima presa. Vince la carta più alta (A, K, Q, J, 10…2); a parità vince quella giocata prima.</p>
 <p><b>Punti:</b> se fai esattamente le prese dichiarate guadagni quel numero (0 = 0 punti). Se sbagli perdi la differenza tra dichiarate e fatte.</p></details>`}
 
@@ -576,7 +577,7 @@ function viewGame(){
   const k=G.seq[Math.min(G.h,G.seq.length-1)],dealer=P[G.dealer],iLeft=(G.left||[]).includes(me);
   const SPK=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>${soundOn?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
   const head=`<header class="gtop"><button class="ib" data-act="back" aria-label="Torna alle partite">←</button>
-    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v21</small></div>
+    <div class="ginfo">${G.status==='end'?'<b>Partita finita</b>':`<b>Mano ${G.h+1}/${G.seq.length}</b> · ${k} ${k===1?'carta':'carte'}`}<small>${G.status==='end'?'':'Dà '+esc(nm(dealer))+' · '}host ${esc(nm(G.host))} · v22</small></div>
     <button class="ib" data-act="sound" aria-label="${soundOn?'Spegni audio':'Accendi audio'}" aria-pressed="${soundOn}">${SPK}</button>
     <button class="ib" data-act="menu" aria-label="Menu">⋯</button></header>`;
   // giocatori in ordine di giro
@@ -599,7 +600,7 @@ function viewGame(){
   let center='';
   if(G.status==='bid'){
     const mine=myMove.bid&&myMove.bid.h===G.h&&myMove.bid.r===G.r?myMove.bid.v:null;
-    center=G.blind?`<div class="big">Prima mano alla cieca</div><p class="mut sm">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`
+    center=G.blind?`<div class="big">${G.h===0?'Prima':'Ultima'} mano alla cieca</div><p class="mut sm">Vedi le carte degli altri, non la tua. Hai la più alta?</p>`
       :`<div class="big">Quante prese farai?</div><p class="mut sm">Apre ${esc(nm(order()[0]))}${inGame&&order().indexOf(me)>=0?` · tu sei ${order().indexOf(me)+1}° di ${P.length}`:''}</p>`;
     if(inGame&&!iLeft)center+=mine==null?`<div class="bids chipbids">${Array.from({length:k+1},(_,i)=>`<button data-act="bid" data-v="${i}" class="pchip" style="--pc:${['#c3242f','#1f5fbf','#1d8a4e','#222','#7a3fc0','#d07a12'][i%6]}"><span>${i}</span></button>`).join('')}</div>`:`<p>Hai dichiarato <b>${mine}</b>. Aspetto gli altri…</p>`;
     center+=`<p class="tip">Tocca un avversario per uno sticker, o te stesso per esultare</p>`;
